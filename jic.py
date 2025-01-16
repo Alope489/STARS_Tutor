@@ -62,12 +62,12 @@ if st.session_state.logged_in:
     # Initialize Chatbot based on selection
     if st.session_state.selected_bot == "TutorBot":
         chatbot = TutorBot(
-            api_key="your_api_key_here",
+            api_key=os.getenv("OPENAI_API_KEY"),
             mongo_uri="mongodb://localhost:27017/",
         )
     elif st.session_state.selected_bot == "CodeBot":
         chatbot = CodeBot(
-            api_key="your_api_key_here",
+            api_key=os.getenv("OPENAI_API_KEY"),
             mongo_uri="mongodb://localhost:27017/",
         )
     else:

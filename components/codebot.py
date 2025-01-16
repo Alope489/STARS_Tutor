@@ -158,7 +158,7 @@ class ChatChainSingleton:
         try:
             embeddings = OpenAIEmbeddings(api_key=os.environ["OPENAI_API_KEY"])
             to_vectorize = [" ".join(example.values()) for example in examples]
-            vectorstore = Chroma.from_texts(to_vectorize, embeddings, metadatas=examples, persist_directory= r"C:\Users\Work\Projects\StarsGPT\Documents")
+            vectorstore = Chroma.from_texts(to_vectorize, embeddings, metadatas=examples, persist_directory= r"Documents")
             logging.info("Chroma initialized.")
         except Exception as e:
             logging.error(f"Chroma initialization failed: {e}")

@@ -1,0 +1,36 @@
+## Set up environment and download dependencies
+- create virtual environment: python3 -m venv venv
+- activate virtual environment: 
+    Mac\ Linux :
+    -source venv/bin/activate
+    Windows:
+    -venv\Scripts\activate
+
+- install dependencies: pip install -r requirements.txt
+
+- set up env variables:
+    - create .env file in the root directory
+    - add the following variables:
+        - OPENAI_API_KEY: your OpenAI API key
+
+#Mongo db setup. This is for now, we will change to a cloud db later.
+- Download MongoDB compass (GUI): https://www.mongodb.com/try/download/compass
+- In compass, create a new connection. Then under that connection a database named 'user_data' and a collection named 'users':
+
+#Feature branch workflow
+- create a new branch: git checkout -b feature-branch-name
+- make changes to the code: 
+- commit the changes: git commit -m "commit message"
+- push the changes: git push origin feature-branch-name
+- create a pull request
+
+
+
+
+
+
+
+
+
+
+

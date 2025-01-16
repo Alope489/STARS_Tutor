@@ -5,7 +5,11 @@ import logging
 from components.chatbot import Chatbot
 from components.tutorbot import TutorBot
 from components.codebot import CodeBot
+from dotenv import load_dotenv
 import os
+
+load_dotenv()
+
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
@@ -15,7 +19,6 @@ client = MongoClient("mongodb://localhost:27017/")
 db = client["user_data"]
 users_collection = db["users"]
 
-os.environ["OPENAI_API_KEY"] = "placeholder"
 
 # Initialize session state
 if "logged_in" not in st.session_state:
@@ -64,12 +67,12 @@ if st.session_state.logged_in:
     # Initialize Chatbot based on selection
     if st.session_state.selected_bot == "TutorBot":
         chatbot = TutorBot(
-            api_key="placeholder",
+            api_key=os.environ["OPENAI_API_KEY"],
             mongo_uri="mongodb://localhost:27017/",
         )
     elif st.session_state.selected_bot == "CodeBot":
         chatbot = CodeBot(
-            api_key="placeholder",
+            api_key=os.environ["OPENAI_API_KEY"],
             mongo_uri="mongodb://localhost:27017/",
         )
     else:
