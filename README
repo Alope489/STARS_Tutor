@@ -1,36 +1,65 @@
-## Set up environment and download dependencies
-- create virtual environment: python3 -m venv venv
-- activate virtual environment: 
-    Mac\ Linux :
-    -source venv/bin/activate
-    Windows:
-    -venv\Scripts\activate
+# Set Up Environment and Download Dependencies
 
-- install dependencies: pip install -r requirements.txt
+1. **Create Virtual Environment:**
+    - Run the following command:
+      ```bash
+      python3 -m venv venv
+      ```
 
-- set up env variables:
-    - create .env file in the root directory
-    - add the following variables:
-        - OPENAI_API_KEY: your OpenAI API key
+2. **Activate Virtual Environment:**
+    - **Mac/Linux:**
+      ```bash
+      source venv/bin/activate
+      ```
+    - **Windows:**
+      ```bash
+      venv\Scripts\activate
+      ```
 
-#Mongo db setup. This is for now, we will change to a cloud db later.
-- Download MongoDB compass (GUI): https://www.mongodb.com/try/download/compass
-- In compass, create a new connection. Then under that connection a database named 'user_data' and a collection named 'users':
+3. **Install Dependencies:**
+    - Run the following command:
+      ```bash
+      pip install -r requirements.txt
+      ```
 
-#Feature branch workflow
-- create a new branch: git checkout -b feature-branch-name
-- make changes to the code: 
-- commit the changes: git commit -m "commit message"
-- push the changes: git push origin feature-branch-name
-- create a pull request
+4. **Set Up Environment Variables:**
+    - Create a `.env` file in the root directory.
+    - Add the following variables:
+      ```
+      OPENAI_API_KEY=your OpenAI API key
+      ```
 
+# MongoDB Setup
 
+1. **Download MongoDB Compass (GUI):**
+    - [Download MongoDB Compass](https://www.mongodb.com/try/download/compass)
 
+2. **Create New Connection in Compass:**
+    - Under the new connection, create a database named `user_data`.
+    - Inside `user_data`, create a collection named `users`.
 
+# Feature Branch Workflow
 
+1. **Create a New Branch:**
+    - Run the following command:
+      ```bash
+      git checkout -b feature-branch-name
+      ```
 
+2. **Make Changes to the Code:**
+    - Edit your code as needed.
 
+3. **Commit the Changes:**
+    - Run the following command:
+      ```bash
+      git commit -m "commit message"
+      ```
 
+4. **Push the Changes:**
+    - Run the following command:
+      ```bash
+      git push origin feature-branch-name
+      ```
 
-
-
+5. **Create a Pull Request:**
+    - Open your repository on GitHub and create a pull request for your feature branch.
