@@ -12,7 +12,8 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.prompts.example_selector.semantic_similarity import SemanticSimilarityExampleSelector
 import logging
 import uuid
-
+from datetime import datetime
+import streamlit as st
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -268,19 +269,43 @@ class TutorBot(Chatbot):
         self.prompt = ChatChainSingleton().prompt
 
     def get_current_chat_id(self,user_id):
-        print('inside get current chat id')
         #get currently selected chat from user, if none then generate one.
         user_doc = self.users_collection.find_one({'username':user_id})
-        print(user_doc)
         chat_id = user_doc.get('current_chat_id_tutorbot')
         #if not found, create one.
         if not chat_id:
-            chat_id = self.users_collection.update_one({"username":user_id},
-                                                 {"$set":{'current_chat_id_tutorbot':str(uuid.uuid4())}}
-                                                 )
-
+            new_chat_id = str(uuid.uuid4())
+            chat_id = new_chat_id
+            #this returns an update result object instead of the chat id
+            self.users_collection.update_one({"username":user_id},
+                                                 {"$set":{'current_chat_id_tutorbot':new_chat_id}}
+                                        )
         return chat_id
-    def generate_response(self, user_id, messages):
+    def get_current_chat_history(self,user_id):
+        chat_id = self.get_current_chat_id(user_id)
+        user_doc = self.users_collection.find_one({'username':user_id})
+        tutor_chat_histories = user_doc.get('tutor_chat_histories')
+        if not tutor_chat_histories:
+            #create one and return original assistant prompt
+            original_message = {"role":"assistant","content":"Hi! I am Tutorbot, ask me any question and I'll answer with specialized knowledge!"}
+            self.users_collection.update_one({"username":user_id},
+                                             {"$set":{"tutor_chat_histories":{chat_id:{'timestamp':datetime.now().timestamp(),'chat_history': [original_message]}}}}
+                                             )
+            return [original_message]
+        current_chat = tutor_chat_histories[chat_id]['chat_history']
+        return current_chat
+    
+    def add_messages_to_chat_history(self,user_id,new_messages):
+        chat_id = self.get_current_chat_id(user_id)
+        chat_history_path = f'tutor_chat_histories.{chat_id}.chat_history'
+        self.users_collection.update_one({'username':user_id},
+                                         {'$push':{chat_history_path:{"$each":new_messages}}}  #push is to push values into an existing object. Each is for pushing multiple values into that object
+                                         )
+        #in front end, it is added to the session state automatically
+        return 'added successfully'
+        
+
+    def generate_response(self, user_id,messages):
         try:
             logging.info("Generating response...")
             user_message = messages[-1]["content"]
@@ -296,9 +321,10 @@ class TutorBot(Chatbot):
             formatted_prompt = self.prompt.format_prompt(**prompt_values)
             response = self.chain.invoke(prompt_values)
             assistant_message = response.content
-
-            messages.append({"role": "assistant", "content": assistant_message})
-            print(self.get_current_chat_id(user_id))
+            
+            #add to DB, in main.py the messages get added to sessions state automatically
+            new_messages = [{'role':'user','content':user_message},{'role':'assistant','content':assistant_message}]
+            self.add_messages_to_chat_history(user_id,new_messages)
 
             logging.info("Response generated.")
             return assistant_message

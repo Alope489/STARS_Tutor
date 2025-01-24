@@ -12,13 +12,13 @@ class Chatbot:
         self.users_collection = self.users["users"]
 
 
-    def save_chat_history(self, user_id, messages):
-        print('inside save chat history')
-        #each user has to 2 chat histories, tutorbot and codebot histories. 
-        #Each history has chats, represented by a dictionary containing the timestamp (of most recent message) as key and chat history message aray as value
-        #we receive an updated message history
-        chat_session = {"user_id": user_id, "messages": messages}
-        self.chats_collection.insert_one(chat_session)
+    # def save_chat_history(self, user_id, messages):
+    #     print('inside save chat history')
+    #     #each user has to 2 chat histories, tutorbot and codebot histories. 
+    #     #Each history has chats, represented by a dictionary containing the timestamp (of most recent message) as key and chat history message aray as value
+    #     #we receive an updated message history
+    #     chat_session = {"user_id": user_id, "messages": messages}
+    #     self.chats_collection.insert_one(chat_session)
         # selected_bot = st.session_state.selected_bot
         # current_chat_timestamp = datetime.now().timestamp()
         # self.users_collection.update_one({"username":user_id},
@@ -52,16 +52,16 @@ class Chatbot:
 
 
 
-    def generate_response(self, user_id, messages):
-        try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o",
-                messages=messages
-            )
-            assistant_message = response.choices[0].message.content
-            # Save updated chat history
-            # self.save_chat_history(user_id, user_input,assistant_message)
-            print(self.get_current_chat_id(user_id))
-            return assistant_message
-        except Exception as e:
-            return f"An error occurred: {e}"
+    # def generate_response(self, user_id, messages):
+    #     try:
+    #         response = self.client.chat.completions.create(
+    #             model="gpt-4o",
+    #             messages=messages
+    #         )
+    #         assistant_message = response.choices[0].message.content
+    #         # Save updated chat history
+    #         # self.save_chat_history(user_id, user_input,assistant_message)
+    #         print(self.get_current_chat_id(user_id))
+    #         return assistant_message
+    #     except Exception as e:
+    #         return f"An error occurred: {e}"

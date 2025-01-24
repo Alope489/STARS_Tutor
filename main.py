@@ -7,7 +7,6 @@ from components.tutorbot import TutorBot
 from components.codebot import CodeBot
 from dotenv import load_dotenv
 import os
-
 load_dotenv()
 
 
@@ -27,7 +26,7 @@ if "logged_in" not in st.session_state:
 if "auth_mode" not in st.session_state:
     st.session_state.auth_mode = "Sign In"
 if "messages" not in st.session_state:
-    st.session_state.messages = {}
+    st.session_state.messages = []
 if "selected_bot" not in st.session_state:
     st.session_state.selected_bot = "TutorBot"  # Default bot selection
 
@@ -77,34 +76,35 @@ if st.session_state.logged_in:
         )
     else:
         st.error("Invalid bot selection.")
-
+    
+    st.session_state.messages = chatbot.get_current_chat_history(user_id)
     # Ensure message history exists for the selected bot
-    if st.session_state.selected_bot not in st.session_state.messages:
-        st.session_state.messages[st.session_state.selected_bot] = []
+    # if st.session_state.selected_bot not in st.session_state.messages:
+    #     st.session_state.messages[st.session_state.selected_bot] = []
 
     # Display chat history for the selected bot
-    for message in st.session_state.messages[st.session_state.selected_bot]:
+    for message in st.session_state.messages:
         st.chat_message(message["role"]).write(message["content"])
 
     # User Input
     user_input = st.chat_input("Type your message here...")
     if user_input:
-        st.session_state.messages[st.session_state.selected_bot].append({"role": "user", "content": user_input})
+        st.session_state.messages.append({"role": "user", "content": user_input})
         st.chat_message("user").write(user_input)
 
         # Generate and display response
-        assistant_message = chatbot.generate_response(user_id, st.session_state.messages[st.session_state.selected_bot])
+        assistant_message = chatbot.generate_response(user_id,st.session_state.messages)
         
         # Avoid duplicate assistant messages
-        if not st.session_state.messages[st.session_state.selected_bot] or st.session_state.messages[st.session_state.selected_bot][-1]["content"] != assistant_message:
-            st.session_state.messages[st.session_state.selected_bot].append({"role": "assistant", "content": assistant_message})
+        if not st.session_state.messages or st.session_state.messages[-1]["content"] != assistant_message:
+            st.session_state.messages.append({"role": "assistant", "content": assistant_message})
             st.chat_message("assistant").write(assistant_message)
         st.rerun()
 
     if st.button("Logout"):
         st.session_state.logged_in = False
         st.session_state.username = ""
-        st.session_state.messages = {}
+        st.session_state.messages = []
         st.rerun()
 
 else:
