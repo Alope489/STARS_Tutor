@@ -3,7 +3,7 @@ import secrets
 import streamlit as st
 from pymongo import MongoClient
 import logging
-from components.chatbot import Chatbot
+#from components.chatbot import Chatbot
 from components.tutorbot import TutorBot
 from components.codebot import CodeBot
 from dotenv import load_dotenv
@@ -19,9 +19,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 client = MongoClient("mongodb://localhost:27017/")
 db = client["user_data"]
 users_collection = db["users"]
-
-# auth
-authenticator = None
 
 # Initialize session state
 if "logged_in" not in st.session_state:
@@ -59,13 +56,43 @@ def add_user(pantherId, username, email, password):
     logging.info(f"New user added: {username}, {email}")
     return "success"
 
-def authenticate_user(email, password):
-    """Authenticate user with email and password."""
+# def authenticate_user(email, password):
+#     """Authenticate user with email and password."""
     
-    user = users_collection.find_one(credentials)
-    if user:
-        logging.info(f"User authenticated: {user['username']}")
-    return user
+#     user = users_collection.find_one({"email": email, "password": password})
+#     if user:
+#         logging.info(f"User authenticated: {user['username']}")
+#     return user
+
+def get_user_credentials():
+    """Fetch user credentials"""
+    users = users_collection.find()
+    credentials = {"usernames": {}}
+    for user in users:
+        credentials["usernames"][user["username"]] = {
+            "email": user["email"],
+            "password": user["password"][0] # hashed password
+        }
+
+    return credentials
+
+
+# Error handling
+try:
+    credentials = get_user_credentials()
+    print("Credentials:", credentials)  # Debug print
+except Exception as e:
+    print(f"Error fetching credentials: {e}")
+
+
+# Auth process
+signature_key = secrets.token_hex(32)
+authenticator = stauth.Authenticate(
+    credentials,
+    "user_session",
+    signature_key,
+    cookie_expiry_days=1,
+)
 
 # App Structure
 st.title("Welcome to the Stars Tutoring Chatbot")
@@ -118,65 +145,45 @@ if st.session_state.logged_in:
             st.chat_message("assistant").write(assistant_message)
         st.rerun()
 
-    if st.button("Logout"):
-        st.session_state.logged_in = False
-        st.session_state.username = ""
-        st.session_state.messages = {}
-        st.rerun()
-
+    # Logout button
+    authenticator.logout("Logout", "sidebar")
+    st.session_state.logged_in = False
 else:
-    
-    
-    if st.session_state.auth_mode == "Sign In":
-        st.subheader("Sign In")
-        email = st.text_input("FIU Email Address")
-        password = st.text_input("Password", type="password")
-        signature_key = secrets.token_hex(32)
-        credentials = {
-        "email": email,
-        "password": password
-        }
 
-        authenticator = stauth.Authenticate(
-            credentials,
-            "user_session",
-            signature_key,
-            cookie_expiry_days=1,
-        )
+    # login to have more detailed error handling
+    username, authentication_status, email = authenticator.login()
+    if authentication_status is None:
+        print("Authentication status is None - potential configuration issue")
 
-        if st.button("Login"):
-            user = authenticate_user(email, password)
-            if user:
 
-                st.session_state.logged_in = True
-                st.session_state.username = user["username"]
-                st.success(f"Welcome back, {user['username']}!")
-                st.rerun()
+    if authentication_status:
+        st.session_state.logged_in = True
+        st.session_state.username = username
+        st.success(f"Welcome, {username}!")
+    elif authentication_status is False:
+        st.error("Invalid username or password.")
+    else:
+        st.warning("Please log in.")
+
+    # Sign-up form
+    if st.button("Sign Up"):
+        st.session_state.auth_mode = "Sign Up"
+
+if st.session_state.get("auth_mode") == "Sign Up":
+    st.subheader("Sign Up")
+    pantherId = st.text_input("Panther ID")
+    username = st.text_input("Username")
+    email = st.text_input("FIU Email Address")
+    password = st.text_input("Password", type="password")
+    if st.button("Create Account"):
+        if not validate_email(email):
+            st.error("Please use a valid FIU email address.")
+        elif len(password) < 8:
+            st.error("Password must be at least 8 characters long.")
+        else:
+            result = add_user(pantherId, username, email, password)
+            if result == "success":
+                st.success("Account created successfully! Please log in.")
+                st.session_state.auth_mode = "Sign In"
             else:
-                st.error("Invalid email or password.")
-        if st.button("Sign Up"):
-            st.session_state.auth_mode = "Sign Up"
-            st.rerun()
-
-    elif st.session_state.auth_mode == "Sign Up":
-        st.subheader("Sign Up")
-        pantherId = st.text_input("Panther ID")
-        username = st.text_input("Username")
-        email = st.text_input("FIU Email Address")
-        password = st.text_input("Password", type="password")
-        if st.button("Sign Up"):
-            if not validate_email(email):
-                st.error("Please use a valid FIU email address.")
-            elif len(password) < 8:
-                st.error("Password must be at least 8 characters long.")
-            else:
-                result = add_user(pantherId, username, email, password)
-                if result == "success":
-                    st.success("Account created successfully! Please log in.")
-                    st.session_state.auth_mode = "Sign In"
-                    st.rerun()
-                else:
-                    st.error(result)
-        if st.button("Sign In"):
-            st.session_state.auth_mode = "Sign In"
-            st.rerun()
+                st.error(result)
