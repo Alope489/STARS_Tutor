@@ -1,4 +1,5 @@
 # Import required modules
+import secrets
 import streamlit as st
 from pymongo import MongoClient
 import logging
@@ -6,10 +7,10 @@ from components.chatbot import Chatbot
 from components.tutorbot import TutorBot
 from components.codebot import CodeBot
 from dotenv import load_dotenv
+import streamlit_authenticator as stauth
 import os
 
 load_dotenv()
-
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
@@ -19,6 +20,8 @@ client = MongoClient("mongodb://localhost:27017/")
 db = client["user_data"]
 users_collection = db["users"]
 
+# auth
+authenticator = None
 
 # Initialize session state
 if "logged_in" not in st.session_state:
@@ -36,17 +39,30 @@ def validate_email(email):
     """Ensure the email ends with @fiu.edu."""
     return email.endswith("@fiu.edu")
 
-def add_user(username, email, password):
+def add_user(pantherId, username, email, password):
     """Add a new user to the database."""
     if users_collection.find_one({"email": email}):
         return "Email already registered."
-    users_collection.insert_one({"username": username, "email": email, "password": password})
+    users_collection.insert_one({
+        "PID": pantherId,
+        "username": username, 
+        "email": email, 
+        "password": stauth.Hasher([password]).generate(),
+        "courses": [
+            {
+                "name": "",
+                "tutorBotChat": [],
+                "codeBot": []
+            }
+        ]
+        })
     logging.info(f"New user added: {username}, {email}")
     return "success"
 
 def authenticate_user(email, password):
     """Authenticate user with email and password."""
-    user = users_collection.find_one({"email": email, "password": password})
+    
+    user = users_collection.find_one(credentials)
     if user:
         logging.info(f"User authenticated: {user['username']}")
     return user
@@ -55,6 +71,7 @@ def authenticate_user(email, password):
 st.title("Welcome to the Stars Tutoring Chatbot")
 
 if st.session_state.logged_in:
+    print(st.session_state) # debugging session state
     st.success(f"Welcome, {st.session_state.username}!")
 
     # Sidebar for bot selection
@@ -108,13 +125,29 @@ if st.session_state.logged_in:
         st.rerun()
 
 else:
+    
+    
     if st.session_state.auth_mode == "Sign In":
         st.subheader("Sign In")
         email = st.text_input("FIU Email Address")
         password = st.text_input("Password", type="password")
+        signature_key = secrets.token_hex(32)
+        credentials = {
+        "email": email,
+        "password": password
+        }
+
+        authenticator = stauth.Authenticate(
+            credentials,
+            "user_session",
+            signature_key,
+            cookie_expiry_days=1,
+        )
+
         if st.button("Login"):
             user = authenticate_user(email, password)
             if user:
+
                 st.session_state.logged_in = True
                 st.session_state.username = user["username"]
                 st.success(f"Welcome back, {user['username']}!")
@@ -127,6 +160,7 @@ else:
 
     elif st.session_state.auth_mode == "Sign Up":
         st.subheader("Sign Up")
+        pantherId = st.text_input("Panther ID")
         username = st.text_input("Username")
         email = st.text_input("FIU Email Address")
         password = st.text_input("Password", type="password")
@@ -136,7 +170,7 @@ else:
             elif len(password) < 8:
                 st.error("Password must be at least 8 characters long.")
             else:
-                result = add_user(username, email, password)
+                result = add_user(pantherId, username, email, password)
                 if result == "success":
                     st.success("Account created successfully! Please log in.")
                     st.session_state.auth_mode = "Sign In"
