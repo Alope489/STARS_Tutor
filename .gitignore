@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-
+.streamlit/
 .gitignore
 
 # C extensions

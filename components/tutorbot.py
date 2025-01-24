@@ -11,6 +11,7 @@ from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.prompts.example_selector.semantic_similarity import SemanticSimilarityExampleSelector
 import logging
+import uuid
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -266,6 +267,19 @@ class TutorBot(Chatbot):
         self.chain = ChatChainSingleton().chain
         self.prompt = ChatChainSingleton().prompt
 
+    def get_current_chat_id(self,user_id):
+        print('inside get current chat id')
+        #get currently selected chat from user, if none then generate one.
+        user_doc = self.users_collection.find_one({'username':user_id})
+        print(user_doc)
+        chat_id = user_doc.get('current_chat_id_tutorbot')
+        #if not found, create one.
+        if not chat_id:
+            chat_id = self.users_collection.update_one({"username":user_id},
+                                                 {"$set":{'current_chat_id_tutorbot':str(uuid.uuid4())}}
+                                                 )
+
+        return chat_id
     def generate_response(self, user_id, messages):
         try:
             logging.info("Generating response...")
@@ -284,7 +298,7 @@ class TutorBot(Chatbot):
             assistant_message = response.content
 
             messages.append({"role": "assistant", "content": assistant_message})
-            self.save_chat_history(user_id, messages)
+            print(self.get_current_chat_id(user_id))
 
             logging.info("Response generated.")
             return assistant_message
