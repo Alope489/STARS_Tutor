@@ -66,12 +66,12 @@ if st.session_state.logged_in:
     # Initialize Chatbot based on selection
     if st.session_state.selected_bot == "TutorBot":
         chatbot = TutorBot(
-            api_key=os.environ["OPENAI_API_KEY"],
+            api_key=st.secrets['OPENAI_API_KEY'],
             mongo_uri="mongodb://localhost:27017/",
         )
     elif st.session_state.selected_bot == "CodeBot":
         chatbot = CodeBot(
-            api_key=os.environ["OPENAI_API_KEY"],
+            api_key=st.secrets['OPENAI_API_KEY'] ,
             mongo_uri="mongodb://localhost:27017/",
         )
     else:
@@ -106,6 +106,24 @@ if st.session_state.logged_in:
         st.session_state.username = ""
         st.session_state.messages = []
         st.rerun()
+
+    if st.button("Add New Chat"):
+        st.session_state.messages = []
+
+        if st.session_state.selected_bot == "TutorBot":
+            st.session_state.chatbot = TutorBot(
+            api_key=st.secrets['OPENAI_API_KEY'],
+            mongo_uri="mongodb://localhost:27017/"
+        )
+            st.session_state.chat_history = []
+        elif st.session_state.selected_bot == "CodeBot":
+            st.session_state.chatbot = CodeBot(
+            api_key=st.secrets['OPENAI_API_KEY'],
+            mongo_uri="mongodb://localhost:27017/"
+        )
+        st.rerun()
+        
+
 
 else:
     if st.session_state.auth_mode == "Sign In":
