@@ -10,7 +10,7 @@ class Chatbot:
         self.mongo_client = MongoClient(mongo_uri)
         self.users = self.mongo_client["user_data"]
         self.users_collection = self.users["users"]
-
+        
 
     # def save_chat_history(self, user_id, messages):
     #     print('inside save chat history')

@@ -52,70 +52,12 @@ def authenticate_user(email, password):
         logging.info(f"User authenticated: {user['username']}")
     return user
 
-def start_new_chat(chatbot, user_id):    
-    if st.session_state.selected_bot == "TutorBot": 
-            
-            #This creates a new id for the code
-            new_chat_id = str(uuid.uuid4())
-            initial_message = {"role": "assistant", "content": "Hi! This is the start of a new TutorBot chat."}
-
-            # Add the new chat to the database and set it as the current chat
-            result = chatbot.users_collection.update_one(
-                {"username": user_id},
-                {
-                    "$set": {
-                        f"tutor_chat_histories.{new_chat_id}": {
-                            "timestamp": datetime.now().timestamp(),
-                            "chat_history": [initial_message]
-                        },
-                        "current_chat_id_tutorbot": new_chat_id  # Update the current chat ID
-                    }
-                }
-            )
-
-            # Check if the new chat was created successfully
-            if result.modified_count == 0:
-                logging.error("Failed to create new chat in the database.")
-                st.error("Could not create a new chat. Please try again.")
-                return
-
-    elif st.session_state.selected_bot == "CodeBot":
-                #This creates a new id for the code
-                new_chat_id = str(uuid.uuid4())
-                initial_message = {"role": "assistant", "content": "Hi! This is the start of a new CoderBot chat."}
-
-            # Add the new chat to the database and set it as the current chat
-                result = chatbot.users_collection.update_one(
-                {"username": user_id},
-                {
-                    "$set": {
-                        f"coderbot_chat_histories.{new_chat_id}": {
-                            "timestamp": datetime.now().timestamp(),
-                            "chat_history": [initial_message]
-                        },
-                        "current_chat_id_coderbot": new_chat_id  # Update the current chat ID
-                    }
-                }
-            )
-
-            # Check if the new chat was created successfully
-                if result.modified_count == 0:
-                    logging.error("Failed to create new chat in the database.")
-                    st.error("Could not create a new chat. Please try again.")
-                    return
-
 
 # App Structure
 st.title("Welcome to the Stars Tutoring Chatbot")
 
 if st.session_state.logged_in:
     st.success(f"Welcome, {st.session_state.username}!")
-
-    # Sidebar for bot selection
-    st.sidebar.title("Select Bot")
-    bot_selection = st.sidebar.radio("Choose your bot:", ["TutorBot", "CodeBot"])
-    st.session_state.selected_bot = bot_selection
-
     user_id = st.session_state.username
 
     # Initialize Chatbot based on selection
@@ -131,8 +73,30 @@ if st.session_state.logged_in:
         )
     else:
         st.error("Invalid bot selection.")
-    
+    # chatbot.set_current_chat_id(user_id,'f9d77b5e-cc99-4ae4-a123-a8f5afeb03f3')
+    print(st.session_state.selected_bot)
     st.session_state.messages = chatbot.get_current_chat_history(user_id)
+    # Sidebar for bot selection
+    with st.sidebar:
+        if st.button("Logout"):
+            st.session_state.logged_in = False
+            st.session_state.username = ""
+            st.session_state.messages = []
+            st.rerun()
+            
+        st.sidebar.title("Select Bot")
+        bot_selection = st.sidebar.radio("Choose your bot:", ["TutorBot", "CodeBot"])
+        if bot_selection!=st.session_state.selected_bot:
+            st.session_state.selected_bot = bot_selection
+            st.rerun()
+
+        chat_ids = chatbot.get_all_chat_ids(user_id)
+        selected_chat_id = st.selectbox('Select a chat',options=chat_ids,index=None,placeholder='Select chat')
+        if selected_chat_id:
+            chatbot.set_current_chat_id(user_id,selected_chat_id)
+            st.session_state.messages = chatbot.get_current_chat_history(user_id)
+        
+    
     # Ensure message history exists for the selected bot
     # if st.session_state.selected_bot not in st.session_state.messages:
     #     st.session_state.messages[st.session_state.selected_bot] = []
@@ -156,14 +120,10 @@ if st.session_state.logged_in:
             st.chat_message("assistant").write(assistant_message)
         st.rerun()
 
-    if st.button("Logout"):
-        st.session_state.logged_in = False
-        st.session_state.username = ""
-        st.session_state.messages = []
-        st.rerun()
+
 
     if st.button("Add New Chat"):
-        start_new_chat(chatbot, user_id)
+        chatbot.start_new_chat(user_id)
         st.success("New chat created!")
         st.rerun()
         

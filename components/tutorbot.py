@@ -268,9 +268,15 @@ class TutorBot(Chatbot):
         self.chain = ChatChainSingleton().chain
         self.prompt = ChatChainSingleton().prompt
 
+    def set_current_chat_id(self,user_id,chat_id):
+        self.users_collection.update_one({"username":user_id},
+                                         {"$set":{'current_chat_id_tutorbot':chat_id}}
+                                         )
+        return chat_id
     def get_current_chat_id(self,user_id):
         #get currently selected chat from user, if none then generate one.
         user_doc = self.users_collection.find_one({'username':user_id})
+        print(user_doc)
         chat_id = user_doc.get('current_chat_id_tutorbot')
         #if not found, create one.
         if not chat_id:
@@ -306,8 +312,36 @@ class TutorBot(Chatbot):
                                          )
         #in front end, it is added to the session state automatically
         return 'added successfully'
-        
+    def get_all_chat_ids(self,user_id):
+        user_doc = self.users_collection.find_one({'username':user_id})
+        chat_histories_object = user_doc.get('tutor_chat_histories')
+        chat_ids = chat_histories_object.keys()
+        return list(chat_ids)
+    def start_new_chat(self, user_id):     
+            #This creates a new id for the code
+            new_chat_id = str(uuid.uuid4())
+            initial_message = {"role": "assistant", "content": "Hi! This is the start of a new TutorBot chat."}
 
+            # Add the new chat to the database and set it as the current chat
+            result = self.users_collection.update_one(
+                {"username": user_id},
+                {
+                    "$set": {
+                        f"tutor_chat_histories.{new_chat_id}": {
+                            "timestamp": datetime.now().timestamp(),
+                            "chat_history": [initial_message]
+                        },
+                        "current_chat_id_tutorbot": new_chat_id  # Update the current chat ID
+                    }
+                }
+            )
+
+            # Check if the new chat was created successfully
+            if result.modified_count == 0:
+                logging.error("Failed to create new chat in the database.")
+                st.error("Could not create a new chat. Please try again.")
+                return
+            
     def generate_response(self, user_id,messages):
         try:
             logging.info("Generating response...")
