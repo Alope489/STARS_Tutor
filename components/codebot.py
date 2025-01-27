@@ -12,6 +12,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.prompts.example_selector.semantic_similarity import SemanticSimilarityExampleSelector
 import logging
 import uuid
+import streamlit as st
 from datetime import datetime
 
 # Configure logging
@@ -158,7 +159,7 @@ class ChatChainSingleton:
         ]
 
         try:
-            embeddings = OpenAIEmbeddings(api_key=os.environ["OPENAI_API_KEY"])
+            embeddings = OpenAIEmbeddings(api_key=st.secrets['OPENAI_API_KEY'] )
             to_vectorize = [" ".join(example.values()) for example in examples]
             vectorstore = Chroma.from_texts(to_vectorize, embeddings, metadatas=examples, persist_directory= r"Documents")
             logging.info("Chroma initialized.")
@@ -221,7 +222,7 @@ class ChatChainSingleton:
         chat_model = ChatOpenAI(
             model=model,
             temperature=0.0,
-            api_key=os.environ["OPENAI_API_KEY"]
+            api_key=st.secrets['OPENAI_API_KEY']
         )
         chain = final_prompt | chat_model
 
@@ -278,9 +279,11 @@ class CodeBot(Chatbot):
     def add_messages_to_chat_history(self,user_id,new_messages):
         chat_id = self.get_current_chat_id(user_id)
         chat_history_path = f'coderbot_chat_histories.{chat_id}.chat_history'
+        chat_timestamp_path = f'coderbot_chat_histories.{chat_id}.timestamp'
         self.users_collection.update_one({'username':user_id},
-                                         {'$push':{chat_history_path:{"$each":new_messages}}}  #push is to push values into an existing object. Each is for pushing multiple values into that object
-                                         )
+                                         {'$push':{chat_history_path:{"$each":new_messages}}, #push is to push values into an existing object. Each is for pushing multiple values into that object
+                                          '$set':{chat_timestamp_path: datetime.now().timestamp()}} # set is to update a specfic field in a object.
+                                        ) 
         #in front end, it is added to the session state automatically
         return 'added successfully'
     def generate_response(self, user_id, messages):

@@ -6,6 +6,8 @@ from components.chatbot import Chatbot
 from components.tutorbot import TutorBot
 from components.codebot import CodeBot
 from dotenv import load_dotenv
+from datetime import datetime
+import uuid
 import os
 load_dotenv()
 
@@ -49,6 +51,59 @@ def authenticate_user(email, password):
     if user:
         logging.info(f"User authenticated: {user['username']}")
     return user
+
+def start_new_chat(chatbot, user_id):    
+    if st.session_state.selected_bot == "TutorBot": 
+            
+            #This creates a new id for the code
+            new_chat_id = str(uuid.uuid4())
+            initial_message = {"role": "assistant", "content": "Hi! This is the start of a new TutorBot chat."}
+
+            # Add the new chat to the database and set it as the current chat
+            result = chatbot.users_collection.update_one(
+                {"username": user_id},
+                {
+                    "$set": {
+                        f"tutor_chat_histories.{new_chat_id}": {
+                            "timestamp": datetime.now().timestamp(),
+                            "chat_history": [initial_message]
+                        },
+                        "current_chat_id_tutorbot": new_chat_id  # Update the current chat ID
+                    }
+                }
+            )
+
+            # Check if the new chat was created successfully
+            if result.modified_count == 0:
+                logging.error("Failed to create new chat in the database.")
+                st.error("Could not create a new chat. Please try again.")
+                return
+
+    elif st.session_state.selected_bot == "CodeBot":
+                #This creates a new id for the code
+                new_chat_id = str(uuid.uuid4())
+                initial_message = {"role": "assistant", "content": "Hi! This is the start of a new CoderBot chat."}
+
+            # Add the new chat to the database and set it as the current chat
+                result = chatbot.users_collection.update_one(
+                {"username": user_id},
+                {
+                    "$set": {
+                        f"coderbot_chat_histories.{new_chat_id}": {
+                            "timestamp": datetime.now().timestamp(),
+                            "chat_history": [initial_message]
+                        },
+                        "current_chat_id_coderbot": new_chat_id  # Update the current chat ID
+                    }
+                }
+            )
+
+            # Check if the new chat was created successfully
+                if result.modified_count == 0:
+                    logging.error("Failed to create new chat in the database.")
+                    st.error("Could not create a new chat. Please try again.")
+                    return
+
 
 # App Structure
 st.title("Welcome to the Stars Tutoring Chatbot")
@@ -108,20 +163,11 @@ if st.session_state.logged_in:
         st.rerun()
 
     if st.button("Add New Chat"):
-        st.session_state.messages = []
-
-        if st.session_state.selected_bot == "TutorBot":
-            st.session_state.chatbot = TutorBot(
-            api_key=st.secrets['OPENAI_API_KEY'],
-            mongo_uri="mongodb://localhost:27017/"
-        )
-            st.session_state.chat_history = []
-        elif st.session_state.selected_bot == "CodeBot":
-            st.session_state.chatbot = CodeBot(
-            api_key=st.secrets['OPENAI_API_KEY'],
-            mongo_uri="mongodb://localhost:27017/"
-        )
+        start_new_chat(chatbot, user_id)
+        st.success("New chat created!")
         st.rerun()
+        
+        
         
 
 
