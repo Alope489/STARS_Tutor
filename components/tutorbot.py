@@ -11,7 +11,9 @@ from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.prompts.example_selector.semantic_similarity import SemanticSimilarityExampleSelector
 import logging
-
+import uuid
+from datetime import datetime
+import streamlit as st
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -174,7 +176,7 @@ So the final answer is: For writing a recursive method to calculate the factoria
 
         # Create the vector store
         try:
-            embeddings = OpenAIEmbeddings(api_key=os.environ["OPENAI_API_KEY"])
+            embeddings = OpenAIEmbeddings(api_key=st.secrets["OPENAI_API_KEY"])
             to_vectorize = [" ".join(example.values()) for example in examples]
             vectorstore = Chroma.from_texts(to_vectorize, embeddings, metadatas=examples, persist_directory=r"Documents")
             logging.info("Chroma initialized.")
@@ -234,7 +236,7 @@ So the final answer is: For writing a recursive method to calculate the factoria
         chat_model = ChatOpenAI(
             model=model,
             temperature=0.0,
-            api_key=os.environ["OPENAI_API_KEY"]
+            api_key=st.secrets["OPENAI_API_KEY"]
         )
         logging.info("Chat model initialized.")
 
@@ -266,7 +268,81 @@ class TutorBot(Chatbot):
         self.chain = ChatChainSingleton().chain
         self.prompt = ChatChainSingleton().prompt
 
-    def generate_response(self, user_id, messages):
+    def set_current_chat_id(self,user_id,chat_id):
+        self.users_collection.update_one({"username":user_id},
+                                         {"$set":{'current_chat_id_tutorbot':chat_id}}
+                                         )
+        return chat_id
+    def get_current_chat_id(self,user_id):
+        #get currently selected chat from user, if none then generate one.
+        user_doc = self.users_collection.find_one({'username':user_id})
+        print(user_doc)
+        chat_id = user_doc.get('current_chat_id_tutorbot')
+        #if not found, create one.
+        if not chat_id:
+            new_chat_id = str(uuid.uuid4())
+            chat_id = new_chat_id
+            #this returns an update result object instead of the chat id
+            self.users_collection.update_one({"username":user_id},
+                                                 {"$set":{'current_chat_id_tutorbot':new_chat_id}}
+                                        )
+        return chat_id
+    def get_current_chat_history(self,user_id):
+        chat_id = self.get_current_chat_id(user_id)
+        user_doc = self.users_collection.find_one({'username':user_id})
+        tutor_chat_histories = user_doc.get('tutor_chat_histories')
+        if not tutor_chat_histories:
+            #create one and return original assistant prompt
+            original_message = {"role":"assistant","content":"Hi! I am Tutorbot, ask me any question and I'll answer with specialized knowledge!"}
+            self.users_collection.update_one({"username":user_id},
+                                             {"$set":{"tutor_chat_histories":{chat_id:{'timestamp':datetime.now().timestamp(),'chat_history': [original_message]}}}}
+                                             )
+            return [original_message]
+        current_chat = tutor_chat_histories[chat_id]['chat_history']
+        return current_chat
+    
+    def add_messages_to_chat_history(self,user_id,new_messages):
+        chat_id = self.get_current_chat_id(user_id)
+        chat_history_path = f'tutor_chat_histories.{chat_id}.chat_history'
+        chat_timestamp_path = f'tutor_chat_histories.{chat_id}.timestamp'
+        
+        self.users_collection.update_one({'username':user_id},
+                                         {'$push':{chat_history_path:{"$each":new_messages}}, #push is to push values into an existing object. Each is for pushing multiple values into that object
+                                          '$set':{chat_timestamp_path: datetime.now().timestamp()}} # set is to update a specfic field in a object.
+                                         )
+        #in front end, it is added to the session state automatically
+        return 'added successfully'
+    def get_all_chat_ids(self,user_id):
+        user_doc = self.users_collection.find_one({'username':user_id})
+        chat_histories_object = user_doc.get('tutor_chat_histories')
+        chat_ids = chat_histories_object.keys()
+        return list(chat_ids)
+    def start_new_chat(self, user_id):     
+            #This creates a new id for the code
+            new_chat_id = str(uuid.uuid4())
+            initial_message = {"role": "assistant", "content": "Hi! This is the start of a new TutorBot chat."}
+
+            # Add the new chat to the database and set it as the current chat
+            result = self.users_collection.update_one(
+                {"username": user_id},
+                {
+                    "$set": {
+                        f"tutor_chat_histories.{new_chat_id}": {
+                            "timestamp": datetime.now().timestamp(),
+                            "chat_history": [initial_message]
+                        },
+                        "current_chat_id_tutorbot": new_chat_id  # Update the current chat ID
+                    }
+                }
+            )
+
+            # Check if the new chat was created successfully
+            if result.modified_count == 0:
+                logging.error("Failed to create new chat in the database.")
+                st.error("Could not create a new chat. Please try again.")
+                return
+            
+    def generate_response(self, user_id,messages):
         try:
             logging.info("Generating response...")
             user_message = messages[-1]["content"]
@@ -282,9 +358,10 @@ class TutorBot(Chatbot):
             formatted_prompt = self.prompt.format_prompt(**prompt_values)
             response = self.chain.invoke(prompt_values)
             assistant_message = response.content
-
-            messages.append({"role": "assistant", "content": assistant_message})
-            self.save_chat_history(user_id, messages)
+            
+            #add to DB, in main.py the messages get added to sessions state automatically
+            new_messages = [{'role':'user','content':user_message},{'role':'assistant','content':assistant_message}]
+            self.add_messages_to_chat_history(user_id,new_messages)
 
             logging.info("Response generated.")
             return assistant_message
