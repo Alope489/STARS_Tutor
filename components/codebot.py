@@ -323,6 +323,27 @@ class CodeBot(Chatbot):
                     logging.error("Failed to create new chat in the database.")
                     st.error("Could not create a new chat. Please try again.")
                     return
+                
+    def delete_chat(chatbot, user_id):
+        if st.session_state.selected_bot == "CodeBot":
+
+                """Delete the current chat from coderbot_chat_histories."""
+            # Get the user's current chat ID
+        user_doc = chatbot.users_collection.find_one({"username": user_id})
+        current_chat_id = user_doc.get("current_chat_id_coderbot")
+             # Delete the chat from the database
+        result = chatbot.users_collection.update_one(
+                    {"username": user_id},
+                    {
+                    "$unset": {f"coderbot_chat_histories.{current_chat_id}": ""},
+                    "$set": {"current_chat_id_coderbot": None}  # Reset the current chat ID
+                    }
+                )
+            # Clear session state messages
+        st.session_state.messages = []
+        logging.info(f"Chat with ID {current_chat_id} deleted successfully.")
+        st.success("Chat deleted successfully!")
+
     def generate_response(self, user_id, messages):
         try:
             logging.info("Generating response...")

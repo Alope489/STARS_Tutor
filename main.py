@@ -158,6 +158,13 @@ if st.session_state.logged_in:
             st.sidebar.warning("No chats available to display.")
             st.session_state.messages = []
 
+        with  st.popover("Delete Chat"):      
+            if st.button("Yes, Delete Chat!"):
+                chatbot.delete_chat(user_id)
+                st.success("chat Deleted!")
+                st.rerun()
+
+
 
         # chat_ids = chatbot.get_all_chat_ids(user_id)
 
