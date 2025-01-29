@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 import uuid
 import os
+
 load_dotenv()
 
 
@@ -67,17 +68,26 @@ def get_recent_chats(user_id, chat_key):
         st.warning(f"No chat history found for {st.session_state.selected_bot}.")
         return []
 
-    # Extract the most recent assistant message for each chat
-    recent_chats = []
-    for chat_id, chat_data in chat_histories.items():
-        chat_history = chat_data.get("chat_history", [])
-        if chat_history:
-            for message in reversed(chat_history):
-                if message["role"] == "assistant":
-                    recent_chats.append({"chat_id": chat_id, "content": message["content"]})
-                    break
-    if not recent_chats:
-        st.warning(f"No assistant messages found in {st.session_state.selected_bot} chat history.")
+    # Extract messages and timestamps
+    recent_chats = [
+        {
+            "chat_id": chat_id,
+            "content": next(
+                (msg["content"] for msg in reversed(chat_data.get("chat_history", [])) if msg["role"] == "assistant"),
+                None,
+            ),
+            "timestamp": chat_data.get("timestamp", datetime.now().timestamp())
+        }
+        for chat_id, chat_data in chat_histories.items()
+    ]
+
+    # Sort chats by timestamp in descending order
+    recent_chats = sorted(
+        (chat for chat in recent_chats if chat["content"] is not None),
+        key=lambda x: x["timestamp"],
+        reverse=True,
+    )
+
     return recent_chats
 
 # App Structure
@@ -132,9 +142,10 @@ if st.session_state.logged_in:
         if recent_chats:
             # Populate the selectbox with recent assistant messages
             chat_options = [chat["content"] for chat in recent_chats]
+
             selected_chat_index = st.sidebar.selectbox(
                 "Select a Chat:",
-                options=reversed(range(len(chat_options))),
+                options=range(len(chat_options)),
                 format_func=lambda idx: chat_options[idx],
                 key="chat_selection",
             )
