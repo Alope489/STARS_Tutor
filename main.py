@@ -1,4 +1,5 @@
 # Import required modules
+import time
 import streamlit as st
 from pymongo import MongoClient
 import logging
@@ -6,6 +7,8 @@ from components.chatbot import Chatbot
 from components.tutorbot import TutorBot
 from components.codebot import CodeBot
 from dotenv import load_dotenv
+from datetime import datetime
+import uuid
 import os
 
 load_dotenv()
@@ -27,7 +30,7 @@ if "logged_in" not in st.session_state:
 if "auth_mode" not in st.session_state:
     st.session_state.auth_mode = "Sign In"
 if "messages" not in st.session_state:
-    st.session_state.messages = {}
+    st.session_state.messages = []
 if "selected_bot" not in st.session_state:
     st.session_state.selected_bot = "TutorBot"  # Default bot selection
 
@@ -51,60 +54,152 @@ def authenticate_user(email, password):
         logging.info(f"User authenticated: {user['username']}")
     return user
 
+def get_recent_chats(user_id, chat_key):
+    """
+    Fetch recent assistant messages for the selected bot's chat history.
+    """
+    user_data = users_collection.find_one({"username": user_id})
+    if not user_data:
+        st.warning("No user data found.")
+        return []
+
+    chat_histories = user_data.get(chat_key, {})
+    if not chat_histories:
+        st.warning(f"No chat history found for {st.session_state.selected_bot}.")
+        return []
+
+    # Extract messages and timestamps
+    recent_chats = [
+        {
+            "chat_id": chat_id,
+            "content": next(
+                (msg["content"] for msg in reversed(chat_data.get("chat_history", [])) if msg["role"] == "assistant"),
+                None,
+            ),
+            "timestamp": chat_data.get("timestamp", datetime.now().timestamp())
+        }
+        for chat_id, chat_data in chat_histories.items()
+    ]
+
+    # Sort chats by timestamp in descending order
+    recent_chats = sorted(
+        (chat for chat in recent_chats if chat["content"] is not None),
+        key=lambda x: x["timestamp"],
+        reverse=True,
+    )
+
+    return recent_chats
+
 # App Structure
 st.title("Welcome to the Stars Tutoring Chatbot")
 
 if st.session_state.logged_in:
-    st.success(f"Welcome, {st.session_state.username}!")
-
-    # Sidebar for bot selection
-    st.sidebar.title("Select Bot")
-    bot_selection = st.sidebar.radio("Choose your bot:", ["TutorBot", "CodeBot"])
-    st.session_state.selected_bot = bot_selection
-
+    # Display a success message temporarily
+    # temp solution
+    placeholder = st.empty()  # Create a placeholder
+    placeholder.success(f"Welcome, {st.session_state.username}!")  # Show the success message
+    time.sleep(2)  # Wait for 2 seconds
+    placeholder.empty()  # Clear the message after 2 seconds
+    
+    # st.success(f"Welcome, {st.session_state.username}!")
     user_id = st.session_state.username
 
     # Initialize Chatbot based on selection
     if st.session_state.selected_bot == "TutorBot":
         chatbot = TutorBot(
-            api_key=os.environ["OPENAI_API_KEY"],
+            api_key=st.secrets['OPENAI_API_KEY'],
             mongo_uri="mongodb://localhost:27017/",
         )
+        chat_key = "tutor_chat_histories"
     elif st.session_state.selected_bot == "CodeBot":
         chatbot = CodeBot(
-            api_key=os.environ["OPENAI_API_KEY"],
+            api_key=st.secrets['OPENAI_API_KEY'] ,
             mongo_uri="mongodb://localhost:27017/",
         )
+        chat_key = "coderbot_chat_histories"
     else:
         st.error("Invalid bot selection.")
+    # chatbot.set_current_chat_id(user_id,'f9d77b5e-cc99-4ae4-a123-a8f5afeb03f3')
+    print(st.session_state.selected_bot)
 
+    # Sidebar for bot selection
+    with st.sidebar:
+        if st.button("Logout"):
+            st.session_state.logged_in = False
+            st.session_state.username = ""
+            st.session_state.messages = []
+            st.rerun()
+
+        st.sidebar.title("Select Bot")
+        bot_selection = st.sidebar.radio("Choose your bot:", ["TutorBot", "CodeBot"])
+        if bot_selection!=st.session_state.selected_bot:
+            st.session_state.selected_bot = bot_selection
+            st.rerun()
+
+        # Fetch Recent Assistant Chats
+        recent_chats = get_recent_chats(user_id, chat_key)
+
+        if recent_chats:
+            # Populate the selectbox with recent assistant messages
+            chat_options = [chat["content"] for chat in recent_chats]
+
+            selected_chat_index = st.sidebar.selectbox(
+                "Select a Chat:",
+                options=range(len(chat_options)),
+                format_func=lambda idx: chat_options[idx],
+                key="chat_selection",
+            )
+
+            # Retrieve selected chat's history
+            selected_chat_id = recent_chats[selected_chat_index]["chat_id"]
+            chatbot.set_current_chat_id(user_id, selected_chat_id)
+            st.session_state.messages = chatbot.get_current_chat_history(user_id)
+        else:
+            st.sidebar.warning("No chats available to display.")
+            st.session_state.messages = []
+
+        with  st.popover("Delete Chat"):      
+            if st.button("Yes, Delete Chat!"):
+                chatbot.delete_chat(user_id)
+                st.success("chat Deleted!")
+                st.rerun()
+
+
+
+        # chat_ids = chatbot.get_all_chat_ids(user_id)
+
+        # selected_chat_id = st.selectbox('Select a chat',options=chat_ids,index=None,placeholder='Select chat')
+        # if selected_chat_id:
+        #     chatbot.set_current_chat_id(user_id,selected_chat_id)
+        #     st.session_state.messages = chatbot.get_current_chat_history(user_id)
+        
+    
     # Ensure message history exists for the selected bot
-    if st.session_state.selected_bot not in st.session_state.messages:
-        st.session_state.messages[st.session_state.selected_bot] = []
+    # if st.session_state.selected_bot not in st.session_state.messages:
+    #     st.session_state.messages[st.session_state.selected_bot] = []
 
     # Display chat history for the selected bot
-    for message in st.session_state.messages[st.session_state.selected_bot]:
+    for message in st.session_state.messages:
         st.chat_message(message["role"]).write(message["content"])
 
     # User Input
     user_input = st.chat_input("Type your message here...")
     if user_input:
-        st.session_state.messages[st.session_state.selected_bot].append({"role": "user", "content": user_input})
+        st.session_state.messages.append({"role": "user", "content": user_input})
         st.chat_message("user").write(user_input)
 
         # Generate and display response
-        assistant_message = chatbot.generate_response(user_id, st.session_state.messages[st.session_state.selected_bot])
+        assistant_message = chatbot.generate_response(user_id,st.session_state.messages)
         
         # Avoid duplicate assistant messages
-        if not st.session_state.messages[st.session_state.selected_bot] or st.session_state.messages[st.session_state.selected_bot][-1]["content"] != assistant_message:
-            st.session_state.messages[st.session_state.selected_bot].append({"role": "assistant", "content": assistant_message})
+        if not st.session_state.messages or st.session_state.messages[-1]["content"] != assistant_message:
+            st.session_state.messages.append({"role": "assistant", "content": assistant_message})
             st.chat_message("assistant").write(assistant_message)
         st.rerun()
 
-    if st.button("Logout"):
-        st.session_state.logged_in = False
-        st.session_state.username = ""
-        st.session_state.messages = {}
+    if st.button("Add New Chat"):
+        chatbot.start_new_chat(user_id)
+        st.success("New chat created!")
         st.rerun()
 
 else:
