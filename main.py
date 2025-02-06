@@ -158,9 +158,13 @@ if st.session_state.logged_in:
             st.sidebar.warning("No chats available to display.")
             st.session_state.messages = []
 
+        if st.button("Add New Chat"):
+            chatbot.start_new_chat(user_id)
+            st.success("New chat created!")
+            st.rerun()
         with  st.popover("Delete Chat"):      
             if st.button("Yes, Delete Chat!"):
-                chatbot.delete_chat(user_id)
+                chatbot.delete_chat(user_id)        
                 st.success("chat Deleted!")
                 st.rerun()
 
@@ -195,11 +199,6 @@ if st.session_state.logged_in:
         if not st.session_state.messages or st.session_state.messages[-1]["content"] != assistant_message:
             st.session_state.messages.append({"role": "assistant", "content": assistant_message})
             st.chat_message("assistant").write(assistant_message)
-        st.rerun()
-
-    if st.button("Add New Chat"):
-        chatbot.start_new_chat(user_id)
-        st.success("New chat created!")
         st.rerun()
 
 else:
