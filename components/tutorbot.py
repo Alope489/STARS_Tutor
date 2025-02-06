@@ -342,25 +342,31 @@ class TutorBot(Chatbot):
                 st.error("Could not create a new chat. Please try again.")
                 return
     def delete_chat(chatbot, user_id):
-        """Delete the current chat from tutor_chat_histories."""
-            # Get the user's current chat ID
-        user_doc = chatbot.users_collection.find_one({"username": user_id})
-        current_chat_id = user_doc.get("current_chat_id_tutorbot")
-        # Delete the chat from the database
-        result = chatbot.users_collection.update_one(
+            """Move the current chat from tutor_chat_histories to deleted_chats."""
+            # Get the user's document from the database
+            user_doc = chatbot.users_collection.find_one({"username": user_id})
+            current_chat_id = user_doc.get("current_chat_id_tutorbot")
+    
+            if current_chat_id:
+                # Retrieve the chat contents
+                chat_contents = user_doc.get("tutor_chat_histories", {}).get(current_chat_id, {})
+        
+                # Move the chat contents to deleted_chats
+                result = chatbot.users_collection.update_one(
                 {"username": user_id},
-                    {
-                        "$unset": {f"tutor_chat_histories.{current_chat_id}": ""},
-                        "$set": {"current_chat_id_tutorbot": None}  # Reset the current chat ID
-                    }
-            )
-        # Clear session state messages
-        st.session_state.messages = []
-        logging.info(f"Chat with ID {current_chat_id} deleted successfully.")
-        st.success("Chat deleted successfully!")
-           
-              
-        return
+                {
+                "$unset": {f"tutor_chat_histories.{current_chat_id}": ""},  # Remove from tutor_chat_histories
+                "$set": {
+                    f"deleted_chats.{current_chat_id}": chat_contents,  # Add to deleted_chats
+                    "current_chat_id_tutorbot": None  # Reset the current chat ID
+                }
+            }
+        )
+        
+                    # Clear session state messages
+                st.session_state.messages = []
+                logging.info(f"Chat with ID {current_chat_id} moved to deleted_chats successfully.")
+                st.success("Chat moved to deleted chats successfully!")
 
             
     def generate_response(self, user_id,messages):
