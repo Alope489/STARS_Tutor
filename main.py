@@ -4,8 +4,6 @@ import streamlit as st
 from pymongo import MongoClient
 import logging
 from components.chatbot import Chatbot
-from components.tutorbot import TutorBot
-from components.codebot import CodeBot
 from dotenv import load_dotenv
 from datetime import datetime
 import uuid
