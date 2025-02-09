@@ -14,7 +14,7 @@ import logging
 import uuid
 import streamlit as st
 from datetime import datetime
-
+import json
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -41,122 +41,8 @@ class ChatChainSingleton:
     @classmethod
     def initialize_chain(cls, model: str = "gpt-4o") -> Any:
         logging.info("Initializing ChatChain.")
-        examples = [
-            {
-                "input": "User's code: def reverse_string(s): return s[::-1]",
-                "output": """
-    Are follow up questions needed here: Yes.
-    Follow up: How close is the student's response?
-    Intermediate answer: The student's code correctly implements a function that reverses a string using slicing.
-    Follow up: Does the code meet the requirements and follow best practices?
-    So the final answer is: The student's code effectively reverses the input string using Python's slicing syntax. It meets the requirements and follows best practices for string manipulation in Python.
-    """,
-            },
-            {
-                "input": "Prompt: Write a Python function that checks if a number is prime.",
-                "output": """
-    Are follow up questions needed here: Yes.
-    Follow up: How accurately does the generated code fulfill the task?
-    Intermediate answer: The generated code correctly defines a function to check for prime numbers but may not handle edge cases.
-    Follow up: Does the code accurately determine if a number is prime for all cases?
-    So the final answer is: The code provides a basic implementation for checking prime numbers but fails for inputs less than 2 and even numbers greater than 2. Refinements are needed to handle these cases and improve efficiency.
-    """,
-            },
-            {
-                "input": "User's code: def factorial(n): return n * factorial(n-1)",
-                "output": """
-    Are follow up questions needed here: Yes.
-    Follow up: How close is the student's response?
-    Intermediate answer: The student attempted to write a recursive factorial function but did not include a base case.
-    Follow up: What corrections are needed in the student's code?
-    So the final answer is: The student's code lacks a base case, which will lead to a recursion error. Adding a base case like 'if n <= 1: return 1' will fix the issue. The corrected function is:
-
-    def factorial(n):
-        if n <= 1:
-            return 1
-        return n * factorial(n-1)
-    """,
-            },
-            {
-                "input": "Prompt: Generate code to read a file and print its contents line by line in Python.",
-                "output": """
-    Are follow up questions needed here: Yes.
-    Follow up: How accurately does the generated code fulfill the task?
-    Intermediate answer: The generated code correctly opens a file and prints each line, handling file operations properly.
-    Follow up: Does the code handle potential exceptions or errors?
-    So the final answer is: The code successfully reads and prints the file contents line by line. However, it could be improved by adding exception handling to manage cases where the file might not exist. Including a 'try-except' block would enhance its robustness.
-    """,
-            },
-            {
-                "input": "User's code: def sum_list(lst): total = 0 for num in lst: total += num return total",
-                "output": """
-    Are follow up questions needed here: Yes.
-    Follow up: How close is the student's response?
-    Intermediate answer: The student's code correctly sums the elements of a list and returns the total.
-    Follow up: Does the code follow best practices and handle edge cases?
-    So the final answer is: The student's code accurately calculates the sum of a list of numbers. It follows best practices and should handle lists of any length, including empty lists, where it correctly returns 0.
-    """,
-            },
-            {
-                "input": "Prompt: Write a Python function to sort a list of numbers in ascending order without using built-in sort functions.",
-                "output": """
-    Are follow up questions needed here: Yes.
-    Follow up: How accurately does the generated code perform the task?
-    Intermediate answer: The generated code implements a basic sorting algorithm like bubble sort to sort the list.
-    Follow up: Is the code efficient and does it avoid using built-in sort functions?
-    So the final answer is: The code correctly sorts a list in ascending order without using built-in functions, meeting the requirements. While bubble sort is not the most efficient algorithm for large lists, it satisfies the task's constraints.
-    """,
-            },
-            {
-                "input": "User's code: def fibonacci(n): a, b = 0, 1 for _ in range(n): a, b = b, a + b return a",
-                "output": """
-    Are follow up questions needed here: Yes.
-    Follow up: How close is the student's response?
-    Intermediate answer: The student's code aims to compute the nth Fibonacci number but returns incorrect values due to loop range.
-    Follow up: What corrections are needed in the student's code?
-    So the final answer is: The code has an off-by-one error in the loop range. Adjusting the range to 'range(n)' or 'range(n-1)' depending on the definition will fix the issue. The corrected code will accurately compute the nth Fibonacci number.
-    """,
-            },
-            {
-                "input": "Prompt: Create a Python class called 'Circle' with a method to compute the area given the radius.",
-                "output": """
-    Are follow up questions needed here: Yes.
-    Follow up: Does the generated code fulfill the requirements?
-    Intermediate answer: The generated code defines a 'Circle' class with an '__init__' method and an 'area' method that calculates the area.
-    Follow up: Are there any improvements or corrections needed?
-    So the final answer is: The code meets the requirements by defining the 'Circle' class and computing the area correctly using the formula πr². To enhance the code, importing the 'math' module for the value of π is recommended. Here's the improved code:
-
-    import math
-
-    class Circle:
-        def __init__(self, radius):
-            self.radius = radius
-
-        def area(self):
-            return math.pi * self.radius ** 2
-    """,
-            },
-            {
-                "input": "User's code: for i in range(5): print('Hello World')",
-                "output": """
-    Are follow up questions needed here: Yes.
-    Follow up: How close is the student's response to printing 'Hello World' five times?
-    Intermediate answer: The student's code correctly prints 'Hello World' five times using a for loop.
-    Follow up: Does the code follow best practices?
-    So the final answer is: The student's code is correct and efficient. It uses a for loop to print 'Hello World' five times, meeting the task requirements.
-    """,
-            },
-            {
-                "input": "Prompt: Generate Python code to find the maximum number in a list.",
-                "output": """
-    Are follow up questions needed here: Yes.
-    Follow up: How accurately does the generated code perform the task?
-    Intermediate answer: The generated code iterates through the list to find the maximum value without using built-in functions.
-    Follow up: Is the code efficient and does it handle edge cases?
-    So the final answer is: The code correctly finds the maximum number by iterating through the list. It handles empty lists by initializing the maximum value appropriately. While using built-in functions like 'max()' is more concise, the code meets the requirement of not using them.
-    """,
-            },
-        ]
+        with open('examples.json','r') as file:
+            examples = json.load(file)['codebot']
 
         try:
             embeddings = OpenAIEmbeddings(api_key=st.secrets['OPENAI_API_KEY'] )
