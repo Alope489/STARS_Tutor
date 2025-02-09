@@ -68,24 +68,8 @@ if st.session_state.logged_in:
     user_id = st.session_state.username
 
     # Initialize Chatbot based on selection
-    if st.session_state.selected_bot == "tutorbot":
-        chatbot = Chatbot(
-            api_key=st.secrets['OPENAI_API_KEY'],
-            mongo_uri="mongodb://localhost:27017/",
-            bot_type='tutorbot'
-        )
-        chat_key = "tutorbot_chat_histories"
-    elif st.session_state.selected_bot == "codebot":
-        chatbot = Chatbot(
-            api_key=st.secrets['OPENAI_API_KEY'] ,
-            mongo_uri="mongodb://localhost:27017/",
-            bot_type ='codebot'
-        )
-        chat_key = "codebot_chat_histories"
-    else:
-        st.error("Invalid bot selection.")
+    
     # chatbot.set_current_chat_id(user_id,'f9d77b5e-cc99-4ae4-a123-a8f5afeb03f3')
-    print(st.session_state.selected_bot)
 
     # Sidebar for bot selection
     with st.sidebar:
@@ -99,7 +83,25 @@ if st.session_state.logged_in:
         bot_selection = st.sidebar.radio("Choose your bot:", ["tutorbot", "codebot"])
         if bot_selection!=st.session_state.selected_bot:
             st.session_state.selected_bot = bot_selection
-            st.rerun()
+        if st.session_state.selected_bot == "tutorbot":
+            chatbot = Chatbot(
+                api_key=st.secrets['OPENAI_API_KEY'],
+                mongo_uri="mongodb://localhost:27017/",
+                bot_type='tutorbot'
+            )
+            chat_key = "tutorbot_chat_histories"
+        elif st.session_state.selected_bot == "codebot":
+            chatbot = Chatbot(
+                api_key=st.secrets['OPENAI_API_KEY'] ,
+                mongo_uri="mongodb://localhost:27017/",
+                bot_type ='codebot'
+            )
+            chat_key = "codebot_chat_histories"
+        else:
+            st.error("Invalid bot selection.")
+        chat_id = chatbot.get_current_chat_id(user_id)
+        st.session_state.messages = chatbot.get_current_chat_history(user_id)
+            # st.rerun()
 
         # Fetch Recent Assistant Chats
         recent_chats = chatbot.get_recent_chats(user_id, chat_key)
