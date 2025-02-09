@@ -32,7 +32,7 @@ if "auth_mode" not in st.session_state:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "selected_bot" not in st.session_state:
-    st.session_state.selected_bot = "TutorBot"  # Default bot selection
+    st.session_state.selected_bot = "tutorbot"  # Default bot selection
 
 # Helper Functions
 def validate_email(email):
@@ -54,41 +54,6 @@ def authenticate_user(email, password):
         logging.info(f"User authenticated: {user['username']}")
     return user
 
-def get_recent_chats(user_id, chat_key):
-    """
-    Fetch recent assistant messages for the selected bot's chat history.
-    """
-    user_data = users_collection.find_one({"username": user_id})
-    if not user_data:
-        st.warning("No user data found.")
-        return []
-
-    chat_histories = user_data.get(chat_key, {})
-    if not chat_histories:
-        st.warning(f"No chat history found for {st.session_state.selected_bot}.")
-        return []
-
-    # Extract messages and timestamps
-    recent_chats = [
-        {
-            "chat_id": chat_id,
-            "content": next(
-                (msg["content"] for msg in reversed(chat_data.get("chat_history", [])) if msg["role"] == "assistant"),
-                None,
-            ),
-            "timestamp": chat_data.get("timestamp", datetime.now().timestamp())
-        }
-        for chat_id, chat_data in chat_histories.items()
-    ]
-
-    # Sort chats by timestamp in descending order
-    recent_chats = sorted(
-        (chat for chat in recent_chats if chat["content"] is not None),
-        key=lambda x: x["timestamp"],
-        reverse=True,
-    )
-
-    return recent_chats
 
 # App Structure
 st.title("Welcome to the Stars Tutoring Chatbot")
@@ -105,18 +70,20 @@ if st.session_state.logged_in:
     user_id = st.session_state.username
 
     # Initialize Chatbot based on selection
-    if st.session_state.selected_bot == "TutorBot":
-        chatbot = TutorBot(
+    if st.session_state.selected_bot == "tutorbot":
+        chatbot = Chatbot(
             api_key=st.secrets['OPENAI_API_KEY'],
             mongo_uri="mongodb://localhost:27017/",
+            bot_type='tutorbot'
         )
-        chat_key = "tutor_chat_histories"
-    elif st.session_state.selected_bot == "CodeBot":
-        chatbot = CodeBot(
+        chat_key = "tutorbot_chat_histories"
+    elif st.session_state.selected_bot == "codebot":
+        chatbot = Chatbot(
             api_key=st.secrets['OPENAI_API_KEY'] ,
             mongo_uri="mongodb://localhost:27017/",
+            bot_type ='codebot'
         )
-        chat_key = "coderbot_chat_histories"
+        chat_key = "codebot_chat_histories"
     else:
         st.error("Invalid bot selection.")
     # chatbot.set_current_chat_id(user_id,'f9d77b5e-cc99-4ae4-a123-a8f5afeb03f3')
@@ -131,13 +98,13 @@ if st.session_state.logged_in:
             st.rerun()
 
         st.sidebar.title("Select Bot")
-        bot_selection = st.sidebar.radio("Choose your bot:", ["TutorBot", "CodeBot"])
+        bot_selection = st.sidebar.radio("Choose your bot:", ["tutorbot", "codebot"])
         if bot_selection!=st.session_state.selected_bot:
             st.session_state.selected_bot = bot_selection
             st.rerun()
 
         # Fetch Recent Assistant Chats
-        recent_chats = get_recent_chats(user_id, chat_key)
+        recent_chats = chatbot.get_recent_chats(user_id, chat_key)
 
         if recent_chats:
             # Populate the selectbox with recent assistant messages
@@ -191,11 +158,11 @@ if st.session_state.logged_in:
         # Generate and display response
         assistant_message = chatbot.generate_response(user_id,st.session_state.messages)
         
-        # Avoid duplicate assistant messages
-        if not st.session_state.messages or st.session_state.messages[-1]["content"] != assistant_message:
-            st.session_state.messages.append({"role": "assistant", "content": assistant_message})
-            st.chat_message("assistant").write(assistant_message)
-        st.rerun()
+        # # Avoid duplicate assistant messages
+        # if not st.session_state.messages or st.session_state.messages[-1]["content"] != assistant_message:
+        #     st.session_state.messages.append({"role": "assistant", "content": assistant_message})
+        st.chat_message("assistant").write(assistant_message)
+        # st.rerun()
 
     if st.button("Add New Chat"):
         chatbot.start_new_chat(user_id)
