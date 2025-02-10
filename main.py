@@ -100,7 +100,8 @@ if st.session_state.logged_in:
         else:
             st.error("Invalid bot selection.")
         chat_id = chatbot.get_current_chat_id(user_id)
-        st.session_state.messages = chatbot.get_current_chat_history(user_id)
+        if chat_id!='deleted':
+            st.session_state.messages = chatbot.get_current_chat_history(user_id)
             # st.rerun()
 
         # Fetch Recent Assistant Chats
@@ -123,7 +124,8 @@ if st.session_state.logged_in:
             st.session_state.messages = chatbot.get_current_chat_history(user_id)
         else:
             st.sidebar.warning("No chats available to display.")
-            st.session_state.messages = []
+            chatbot.start_new_chat(user_id)
+            st.session_state.messages = chatbot.get_current_chat_history(user_id)
 
         with  st.popover("Delete Chat"):      
             if st.button("Yes, Delete Chat!"):
