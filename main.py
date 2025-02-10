@@ -127,11 +127,19 @@ if st.session_state.logged_in:
             chatbot.start_new_chat(user_id)
             st.session_state.messages = chatbot.get_current_chat_history(user_id)
 
-        with  st.popover("Delete Chat"):      
-            if st.button("Yes, Delete Chat!"):
-                chatbot.delete_chat(user_id)
-                st.success("chat Deleted!")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Add New Chat"):
+                chatbot.start_new_chat(user_id)
+                st.success("New chat created!")
                 st.rerun()
+        with col2:
+            with  st.popover("Delete Chat"):      
+                if st.button("Yes, Delete Chat!"):
+                    chatbot.delete_chat(user_id)
+                    st.success("chat Deleted!")
+                    st.rerun()
+
 
 
 
@@ -166,10 +174,7 @@ if st.session_state.logged_in:
         st.chat_message("assistant").write(assistant_message)
         # st.rerun()
 
-    if st.button("Add New Chat"):
-        chatbot.start_new_chat(user_id)
-        st.success("New chat created!")
-        st.rerun()
+    
 
 else:
     if st.session_state.auth_mode == "Sign In":
