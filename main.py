@@ -19,6 +19,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 client = MongoClient("mongodb://localhost:27017/")
 db = client["user_data"]
 users_collection = db["users"]
+archive = client["chat_app"]
+chats_collection = archive["chats"]
 
 
 # Initialize session state

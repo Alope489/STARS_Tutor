@@ -15,6 +15,8 @@ class Chatbot:
         self.mongo_client = MongoClient(mongo_uri)
         self.users = self.mongo_client["user_data"]
         self.users_collection = self.users["users"]
+        self.archive = self.mongo_client["chat_app"]
+        self.chats_collection = self.archive["chats"]
         self.chain = ChatChainSingleton().chain
         self.prompt = ChatChainSingleton().prompt
         self.bot_type = bot_type
@@ -133,13 +135,22 @@ class Chatbot:
         )
 
         return recent_chats
-                
+    
     def delete_chat(self,user_id):
             # Get the user's current chat ID
         user_doc = self.users_collection.find_one({"username": user_id})
         current_chat_id = user_doc.get(f"current_chat_id_{self.bot_type}")
-             # Delete the chat from the database
-        result = self.users_collection.update_one(
+        if current_chat_id:
+            chat_contents = user_doc.get(f"{self.bot_type}_chat_histories", {}).get(current_chat_id, {})
+            if chat_contents:
+              chat_entry = {
+                "user_id": user_id,
+                "chat_id": current_chat_id,
+                "messages": chat_contents  
+            }
+            result = self.chats_collection.insert_one(chat_entry)
+            logging.info(f"Inserted Chat ID: {result.inserted_id}")
+            self.users_collection.update_one(
                     {"username": user_id},
                     {
                     "$unset": {f"{self.bot_type}_chat_histories.{current_chat_id}": ""},
