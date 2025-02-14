@@ -113,17 +113,21 @@ if st.session_state.logged_in:
             # Populate the selectbox with recent assistant messages
             chat_options = [chat["content"] for chat in recent_chats]
 
-            selected_chat_index = st.sidebar.selectbox(
-                "Select a Chat:",
-                options=range(len(chat_options)),
-                format_func=lambda idx: chat_options[idx],
-                key="chat_selection",
-            )
+            for i, chat in enumerate(recent_chats):
 
-            # Retrieve selected chat's history
-            selected_chat_id = recent_chats[selected_chat_index]["chat_id"]
-            chatbot.set_current_chat_id(user_id, selected_chat_id)
-            st.session_state.messages = chatbot.get_current_chat_history(user_id)
+                button_text = chat["content"][:50] + "..."
+                if st.session_state.get("selected_chat_id") == i:
+                        button_text = f"🔵 {button_text}"
+
+                if st.sidebar.button(button_text, key=i, help="click to open chat"):
+                    # Retrieve selected chat's history
+                    st.session_state.selected_chat_id = i
+                    selected_chat_id = chat["chat_id"]
+                    chatbot.set_current_chat_id(user_id, selected_chat_id)
+                    st.session_state.messages = chatbot.get_current_chat_history(user_id)
+                    st.rerun()
+            
+            
         else:
             st.sidebar.warning("No chats available to display.")
             chatbot.start_new_chat(user_id)
@@ -133,6 +137,7 @@ if st.session_state.logged_in:
         with col1:
             if st.button("Add New Chat"):
                 chatbot.start_new_chat(user_id)
+                st.session_state.selected_chat_id = 0
                 st.success("New chat created!")
                 st.rerun()
         with col2:
