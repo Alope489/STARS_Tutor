@@ -31,7 +31,6 @@ class ChatChainSingleton:
         logging.info("Initializing ChatChain.")
         with open('components/examples.json','r') as file:
             examples = json.load(file)[st.session_state.selected_bot]
-
         try:
             embeddings = OpenAIEmbeddings(api_key=st.secrets['OPENAI_API_KEY'] )
             to_vectorize = [" ".join(example.values()) for example in examples]

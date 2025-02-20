@@ -100,7 +100,7 @@ class Chatbot:
                 logging.error("Failed to create new chat in the database.")
                 st.error("Could not create a new chat. Please try again.")
                 return
-    def get_recent_chats(self,user_id, chat_key):
+    def get_recent_chats(self,user_id):
         """
         Fetch recent assistant messages for the selected bot's chat history.
         """
@@ -108,7 +108,7 @@ class Chatbot:
         if not user_data:
             st.warning("No user data found.")
             return []
-
+        chat_key = f'{self.bot_type}_chat_histories'
         chat_histories = user_data.get(chat_key, {})
         if not chat_histories:
             st.warning(f"No chat history found for {st.session_state.selected_bot}.")

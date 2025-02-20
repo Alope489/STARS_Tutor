@@ -82,32 +82,37 @@ if st.session_state.logged_in:
             st.rerun()
 
         st.sidebar.title("Select Bot")
-        bot_selection = st.sidebar.radio("Choose your bot:", ["tutorbot", "codebot"])
+        bot_selection = st.sidebar.radio("Choose your bot:", ["tutorbot", "codebot",'net-centric'])
         if bot_selection!=st.session_state.selected_bot:
             st.session_state.selected_bot = bot_selection
-        if st.session_state.selected_bot == "tutorbot":
-            chatbot = Chatbot(
+        chatbot = Chatbot(
                 api_key=st.secrets['OPENAI_API_KEY'],
                 mongo_uri="mongodb://localhost:27017/",
-                bot_type='tutorbot'
+                bot_type=bot_selection,
             )
-            chat_key = "tutorbot_chat_histories"
-        elif st.session_state.selected_bot == "codebot":
-            chatbot = Chatbot(
-                api_key=st.secrets['OPENAI_API_KEY'] ,
-                mongo_uri="mongodb://localhost:27017/",
-                bot_type ='codebot'
-            )
-            chat_key = "codebot_chat_histories"
-        else:
-            st.error("Invalid bot selection.")
+        # if st.session_state.selected_bot == "tutorbot":
+        #     chatbot = Chatbot(
+        #         api_key=st.secrets['OPENAI_API_KEY'],
+        #         mongo_uri="mongodb://localhost:27017/",
+        #         bot_type='tutorbot'
+        #     )
+        #     chat_key = "tutorbot_chat_histories"
+        # elif st.session_state.selected_bot == "codebot":
+        #     chatbot = Chatbot(
+        #         api_key=st.secrets['OPENAI_API_KEY'] ,
+        #         mongo_uri="mongodb://localhost:27017/",
+        #         bot_type ='codebot'
+        #     )
+        #     chat_key = "codebot_chat_histories"
+        # else:
+        #     st.error("Invalid bot selection.")
         chat_id = chatbot.get_current_chat_id(user_id)
         if chat_id!='deleted':
             st.session_state.messages = chatbot.get_current_chat_history(user_id)
             # st.rerun()
 
         # Fetch Recent Assistant Chats
-        recent_chats = chatbot.get_recent_chats(user_id, chat_key)
+        recent_chats = chatbot.get_recent_chats(user_id)
 
         if recent_chats:
             # Populate the selectbox with recent assistant messages
@@ -148,19 +153,6 @@ if st.session_state.logged_in:
                     st.rerun()
 
 
-
-
-        # chat_ids = chatbot.get_all_chat_ids(user_id)
-
-        # selected_chat_id = st.selectbox('Select a chat',options=chat_ids,index=None,placeholder='Select chat')
-        # if selected_chat_id:
-        #     chatbot.set_current_chat_id(user_id,selected_chat_id)
-        #     st.session_state.messages = chatbot.get_current_chat_history(user_id)
-        
-    
-    # Ensure message history exists for the selected bot
-    # if st.session_state.selected_bot not in st.session_state.messages:
-    #     st.session_state.messages[st.session_state.selected_bot] = []
 
     # Display chat history for the selected bot
     for message in st.session_state.messages:

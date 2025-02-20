@@ -1,8 +1,8 @@
 langchain
 langchain_community
 langchain_openai
-fuzzywuzzy[speedup]
 chromadb
 pymongo
 streamlit
+
 
