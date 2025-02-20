@@ -82,7 +82,7 @@ if st.session_state.logged_in:
             st.rerun()
 
         st.sidebar.title("Select Bot")
-        bot_selection = st.sidebar.radio("Choose your bot:", ["tutorbot", "codebot"])
+        bot_selection = st.sidebar.radio("Choose your bot:", ["tutorbot", "codebot", "net-centric"])
         if bot_selection!=st.session_state.selected_bot:
             st.session_state.selected_bot = bot_selection
         if st.session_state.selected_bot == "tutorbot":
@@ -97,6 +97,12 @@ if st.session_state.logged_in:
                 api_key=st.secrets['OPENAI_API_KEY'] ,
                 mongo_uri="mongodb://localhost:27017/",
                 bot_type ='codebot'
+            )
+        elif st.session_state.selected_bot == 'net-centric':
+            chatbot = Chatbot(
+                api_key=st.secrets['OPENAI_API_KEY'] ,
+                mongo_uri="mongodb://localhost:27017/",
+                bot_type ='net-centric'
             )
             chat_key = "codebot_chat_histories"
         else:
