@@ -6,6 +6,9 @@ import uuid
 import logging
 from components.ChatChainSingleton import ChatChainSingleton
 from cachetools import cached, LFUCache, TTLCache
+from langchain.chat_models import ChatOpenAI
+from langchain.chains import LLMChain
+from langchain.prompts import PromptTemplate
 
 # Chatbot Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -24,6 +27,33 @@ class Chatbot:
         self.chain = ChatChainSingleton().chain
         self.prompt = ChatChainSingleton().prompt
         self.bot_type = bot_type
+    
+    def generate_chat_summary(self,chat_history):
+        """
+        Generate a summary of the chat using LangChain.
+        """
+        prompt_template = """
+        Generate a concise, engaging title summarizing the following conversation. The title should be short (5-7 words), clear, and relevant to the topic. Here is the conversation:
+
+        {chat_text}
+
+        One-line summary:
+        """
+
+        llm = ChatOpenAI(
+            temperature = 0,
+            model_name="gpt-3.5-turbo",
+            api_key=st.secrets['OPENAI_API_KEY']
+        )
+
+        prompt = PromptTemplate(template = prompt_template, input_variables = ["chat_text"])
+        chain = LLMChain (llm= llm, prompt=prompt)
+
+        chat_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in chat_history])
+
+        
+        summary = chain.run(chat_text = chat_text)
+        return summary.strip()
 
 
     def set_current_chat_id(self,user_id,chat_id):
@@ -67,6 +97,8 @@ class Chatbot:
         chat_id = self.get_current_chat_id(user_id)
         chat_history_path = f'{self.bot_type}_chat_histories.{chat_id}.chat_history'
         chat_timestamp_path = f'{self.bot_type}_chat_histories.{chat_id}.timestamp'
+        summary_path = f'{self.bot_type}_chat_histories.{chat_id}.summary'
+        
         self.users_collection.update_one({'username':user_id},
                                          {'$push':{chat_history_path:{"$each":new_messages}}, #push is to push values into an existing object. Each is for pushing multiple values into that object
                                           '$set':{chat_timestamp_path: datetime.now().timestamp()}} # set is to update a specfic field in a object.
@@ -76,14 +108,32 @@ class Chatbot:
         if chat_id in lfu_cache:
             del lfu_cache[chat_id]
 
+
+        
+        user_doc = self.users_collection.find_one({'username': user_id})
+        chat_history = user_doc[f'{self.bot_type}_chat_histories'][chat_id]['chat_history']
+
+        summary = self.generate_chat_summary(chat_history)
+        self.users_collection.update_one(
+            {'username': user_id},
+            {'$set': {summary_path: summary}}
+    )
+
+        if 'current_summary' not in st.session_state:
+            st.session_state.current_summary = {}
+        st.session_state.current_summary[chat_id] = summary
+
+
         #in front end, it is added to the session state automatically
         logging.info('Added message successfully')
+        st.rerun() 
         return 'added successfully'
     
     def get_all_chat_ids(self,user_id):
         user_doc = self.users_collection.find_one({'username':user_id})
         chat_histories_object = user_doc.get(f'{self.bot_type}_chat_histories')
         chat_ids = chat_histories_object.keys()
+        self.update_chat_summary(user_id, chat_id, chat_history)
         return list(chat_ids)
     
     def start_new_chat(self,user_id): 
@@ -98,7 +148,8 @@ class Chatbot:
                 "$set": {
                     f"{self.bot_type}_chat_histories.{new_chat_id}": {
                         "timestamp": datetime.now().timestamp(),
-                        "chat_history": [initial_message]
+                        "chat_history": [initial_message],
+                        "summary": f"New {self.bot_type} chat"
                     },
                     f"current_chat_id_{self.bot_type}": new_chat_id  # Update the current chat ID
                 }
@@ -126,25 +177,24 @@ class Chatbot:
             st.warning(f"No chat history found for {st.session_state.selected_bot}.")
             return []
 
+
+
         # Extract messages and timestamps
         recent_chats = [
-            {
-                "chat_id": chat_id,
-                "content": next(
-                    (msg["content"] for msg in reversed(chat_data.get("chat_history", [])) if msg["role"] == "assistant"),
-                    None,
-                ),
-                "timestamp": chat_data.get("timestamp", datetime.now().timestamp())
-            }
-            for chat_id, chat_data in chat_histories.items()
-        ]
+        {
+            "chat_id": chat_id,
+            "content": chat_data.get("summary","No summary available"),
+            "timestamp": chat_data.get("timestamp", datetime.now().timestamp())
+        }
+        for chat_id, chat_data in chat_histories.items()
+    ]
 
         # Sort chats by timestamp in descending order
         recent_chats = sorted(
-            (chat for chat in recent_chats if chat["content"] is not None),
-            key=lambda x: x["timestamp"],
-            reverse=True,
-        )
+                recent_chats,
+                key=lambda x: x["timestamp"],
+                reverse=True,
+            )
 
         return recent_chats
     
