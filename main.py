@@ -56,7 +56,6 @@ def authenticate_user(email, password):
 #update
 
 # App Structure
-st.title("Welcome to the Stars Tutoring Chatbot")
 
 if st.session_state.logged_in:
     # Display a success message temporarily
@@ -89,15 +88,24 @@ if st.session_state.logged_in:
                 st.success("New chat created!")
                 st.rerun()
 
-        st.sidebar.title("Select Bot")
-        bot_selection = st.sidebar.radio("Choose your bot:", ["tutorbot", "codebot",'net-centric'])
-        if bot_selection!=st.session_state.selected_bot:
+        with st.popover("SELECT A CLASS"):
+            bot_selection = st.radio("Choose your bot:", ["tutorbot", "codebot", "net-centric"])
+
+        # Update session state if selection changes
+        if bot_selection != st.session_state.selected_bot:
             st.session_state.selected_bot = bot_selection
+
+        # Initialize chatbot with the selected bot
         chatbot = Chatbot(
-                api_key=st.secrets['OPENAI_API_KEY'],
-                mongo_uri="mongodb://localhost:27017/",
-                bot_type=bot_selection,
+            api_key=st.secrets['OPENAI_API_KEY'],
+        mongo_uri="mongodb://localhost:27017/",
+        bot_type=st.session_state.selected_bot,
             )
+        chat_id = chatbot.get_current_chat_id(user_id)
+        if chat_id!='deleted':
+            st.session_state.messages = chatbot.get_current_chat_history(user_id)
+            # st.rerun()
+        st.title(f"{st.session_state.selected_bot.capitalize()} Chat History")
    
         chat_id = chatbot.get_current_chat_id(user_id)
         if chat_id!='deleted':
@@ -147,6 +155,7 @@ if st.session_state.logged_in:
 
             
 
+    st.title(f"Welcome to the Stars Tutoring {st.session_state.selected_bot.capitalize()} Chatbot")
 
 
     # Display chat history for the selected bot
