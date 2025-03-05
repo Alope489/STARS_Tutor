@@ -11,6 +11,7 @@ import os
 
 load_dotenv()
 
+
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 
@@ -52,7 +53,7 @@ def authenticate_user(email, password):
     if user:
         logging.info(f"User authenticated: {user['username']}")
     return user
-#update -1
+#update
 
 # App Structure
 st.title("Welcome to the Stars Tutoring Chatbot")
@@ -73,12 +74,6 @@ if st.session_state.logged_in:
     # chatbot.set_current_chat_id(user_id,'f9d77b5e-cc99-4ae4-a123-a8f5afeb03f3')
 
     # Sidebar for bot selection
-
-    # Initialize chatbot outside the sidebar based on session state
-    if 'selected_bot'not in st.session_state.selected_bot:
-            st.session_state.selected_bot = "tutorbot"  # default bot
-    if st.session_state.selected_bot == "tutorbot":
-            chatbot = Chatbot(
     with st.sidebar:
         if st.button("Logout"):
             st.session_state.logged_in = False
@@ -97,50 +92,26 @@ if st.session_state.logged_in:
             )
    
         chat_id = chatbot.get_current_chat_id(user_id)
-                bot_type='tutorbot'
-            )
-            chat_key = "tutorbot_chat_histories"
-    elif st.session_state.selected_bot == "codebot":
-            chatbot = Chatbot(
-                api_key=st.secrets['OPENAI_API_KEY'] ,
-                mongo_uri="mongodb://localhost:27017/",
-                bot_type ='codebot'
-            )
-            chat_key = "codebot_chat_histories"
-
-
-    with st.sidebar:
-        if st.button("Add New Chat"):
-                chatbot.start_new_chat(user_id)
-                st.session_state.selected_chat_id = 0
-                st.success("New chat created!")
-                st.rerun()
-
-        st.sidebar.title("Select Bot")
-        bot_selection = st.sidebar.radio("Choose your bot:", ["tutorbot", "codebot"])
-        if bot_selection != st.session_state.selected_bot:
-                st.session_state.selected_bot = bot_selection
-                st.rerun()  # Rerun to update chatbot initialization
-        
-        chat_id= chatbot.get_current_chat_id(user_id)
         if chat_id!='deleted':
-            st.session_state.messages = chatbot.get_current_chat_history(user_id)    # st.rerun()
+            st.session_state.messages = chatbot.get_current_chat_history(user_id)
+            # st.rerun()
 
         # Fetch Recent Assistant Chats
         recent_chats = chatbot.get_recent_chats(user_id)
 
         if recent_chats:
             # Populate the selectbox with recent assistant messages
-            current_chat_id = chatbot.get_current_chat_id(user_id)
+            chat_options = [chat["content"] for chat in recent_chats]
 
             for i, chat in enumerate(recent_chats):
 
                 button_text = chat["content"][:50] + "..."
-                if chat["chat_id"] == current_chat_id:
+                if st.session_state.get("selected_chat_id") == i:
                         button_text = f"🔵 {button_text}"
 
                 if st.sidebar.button(button_text, key=i, help="click to open chat"):
                     # Retrieve selected chat's history
+                    st.session_state.selected_chat_id = i
                     selected_chat_id = chat["chat_id"]
                     chatbot.set_current_chat_id(user_id, selected_chat_id)
                     st.session_state.messages = chatbot.get_current_chat_history(user_id)
@@ -152,28 +123,19 @@ if st.session_state.logged_in:
             chatbot.start_new_chat(user_id)
             st.session_state.messages = chatbot.get_current_chat_history(user_id)
 
-
-
-        st.sidebar.markdown("<br>" * 3, unsafe_allow_html=True)
-
-        col1,spacer, col2 = st.columns([1, 0.5, 1])
+        col1, col2 = st.columns(2)
         with col1:
-            with  st.popover("Delete Current Chat"):      
+            if st.button("Add New Chat"):
+                chatbot.start_new_chat(user_id)
+                st.session_state.selected_chat_id = 0
+                st.success("New chat created!")
+                st.rerun()
+        with col2:
+            with  st.popover("Delete Chat"):      
                 if st.button("Yes, Delete Chat!"):
                     chatbot.delete_chat(user_id)
                     st.success("chat Deleted!")
                     st.rerun()
-        
-        with spacer:
-            st.empty()  # Empty column for spacing
-        
-        with col2:
-            if st.button("Logout"):
-                st.session_state.logged_in = False
-                st.session_state.username = ""
-                st.session_state.messages = []
-                st.rerun()
-            
 
 
 
@@ -194,7 +156,7 @@ if st.session_state.logged_in:
         # if not st.session_state.messages or st.session_state.messages[-1]["content"] != assistant_message:
         #     st.session_state.messages.append({"role": "assistant", "content": assistant_message})
         st.chat_message("assistant").write(assistant_message)
-        st.rerun()
+        # st.rerun()
 
     
 
