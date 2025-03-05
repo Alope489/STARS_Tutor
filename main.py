@@ -75,11 +75,19 @@ if st.session_state.logged_in:
 
     # Sidebar for bot selection
     with st.sidebar:
-        if st.button("Logout"):
-            st.session_state.logged_in = False
-            st.session_state.username = ""
-            st.session_state.messages = []
-            st.rerun()
+         
+        chatbot = Chatbot(
+                api_key=st.secrets['OPENAI_API_KEY'],
+                mongo_uri="mongodb://localhost:27017/",
+                bot_type=st.session_state.selected_bot,  # Use current selected bot
+            )
+        
+        
+        if st.button("Add New Chat"):
+                chatbot.start_new_chat(user_id)
+                st.session_state.selected_chat_id = 0
+                st.success("New chat created!")
+                st.rerun()
 
         st.sidebar.title("Select Bot")
         bot_selection = st.sidebar.radio("Choose your bot:", ["tutorbot", "codebot",'net-centric'])
@@ -125,17 +133,19 @@ if st.session_state.logged_in:
 
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("Add New Chat"):
-                chatbot.start_new_chat(user_id)
-                st.session_state.selected_chat_id = 0
-                st.success("New chat created!")
-                st.rerun()
-        with col2:
             with  st.popover("Delete Chat"):      
                 if st.button("Yes, Delete Chat!"):
                     chatbot.delete_chat(user_id)
                     st.success("chat Deleted!")
                     st.rerun()
+        with col2:
+            if st.button("Logout"):
+                st.session_state.logged_in = False
+                st.session_state.username = ""
+                st.session_state.messages = []
+                st.rerun()
+
+            
 
 
 
