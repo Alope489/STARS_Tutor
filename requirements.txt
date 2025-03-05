@@ -4,5 +4,4 @@ langchain_openai
 chromadb
 pymongo
 streamlit
-
-
+cachetools
