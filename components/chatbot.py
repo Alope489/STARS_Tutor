@@ -163,7 +163,7 @@ class Chatbot:
                 return
             
     @cached(cache=lfu_cache)
-    def get_recent_chats(self,user_id, chat_key):
+    def get_recent_chats(self,user_id):
         """
         Fetch recent assistant messages for the selected bot's chat history.
         """
