@@ -52,7 +52,7 @@ def authenticate_user(email, password):
     if user:
         logging.info(f"User authenticated: {user['username']}")
     return user
-#update
+#update -1
 
 # App Structure
 st.title("Welcome to the Stars Tutoring Chatbot")
