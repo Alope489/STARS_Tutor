@@ -81,26 +81,30 @@ if st.session_state.logged_in:
                 bot_type=st.session_state.selected_bot,  # Use current selected bot
             )
         
+        colA1,col_spacing1 ,colA2 = st.columns([1,.5,.68])
+        with colA1:
+            if st.button("Add New Chat"):
+                    chatbot.start_new_chat(user_id)
+                    st.session_state.selected_chat_id = 0
+                    st.success("New chat created!")
+                    st.rerun()
+
+        with colA2:
+            with st.popover("Select Bot"):
+                bot_selection = st.radio("Choose your bot:", ["tutorbot", "codebot", "net-centric"])
+
+            # Update session state if selection changes
+            if bot_selection != st.session_state.selected_bot:
+                st.session_state.selected_bot = bot_selection
+
+            # Initialize chatbot with the selected bot
+            chatbot = Chatbot(
+                api_key=st.secrets['OPENAI_API_KEY'],
+            mongo_uri="mongodb://localhost:27017/",
+            bot_type=st.session_state.selected_bot,
+                )
         
-        if st.button("Add New Chat"):
-                chatbot.start_new_chat(user_id)
-                st.session_state.selected_chat_id = 0
-                st.success("New chat created!")
-                st.rerun()
 
-        with st.popover("SELECT A CLASS"):
-            bot_selection = st.radio("Choose your bot:", ["tutorbot", "codebot", "net-centric"])
-
-        # Update session state if selection changes
-        if bot_selection != st.session_state.selected_bot:
-            st.session_state.selected_bot = bot_selection
-
-        # Initialize chatbot with the selected bot
-        chatbot = Chatbot(
-            api_key=st.secrets['OPENAI_API_KEY'],
-        mongo_uri="mongodb://localhost:27017/",
-        bot_type=st.session_state.selected_bot,
-            )
         chat_id = chatbot.get_current_chat_id(user_id)
         if chat_id!='deleted':
             st.session_state.messages = chatbot.get_current_chat_history(user_id)
@@ -139,7 +143,9 @@ if st.session_state.logged_in:
             chatbot.start_new_chat(user_id)
             st.session_state.messages = chatbot.get_current_chat_history(user_id)
 
-        col1, col2 = st.columns(2)
+        st.markdown("<br><br>", unsafe_allow_html=True)
+
+        col1,col_spacing ,col2 = st.columns([.7,.5,.3])
         with col1:
             with  st.popover("Delete Chat"):      
                 if st.button("Yes, Delete Chat!"):
