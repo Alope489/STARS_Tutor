@@ -95,22 +95,7 @@ if st.session_state.logged_in:
                 mongo_uri="mongodb://localhost:27017/",
                 bot_type=bot_selection,
             )
-        # if st.session_state.selected_bot == "tutorbot":
-        #     chatbot = Chatbot(
-        #         api_key=st.secrets['OPENAI_API_KEY'],
-        #         mongo_uri="mongodb://localhost:27017/",
-        #         bot_type='tutorbot'
-        #     )
-        #     chat_key = "tutorbot_chat_histories"
-        # elif st.session_state.selected_bot == "codebot":
-        #     chatbot = Chatbot(
-        #         api_key=st.secrets['OPENAI_API_KEY'] ,
-        #         mongo_uri="mongodb://localhost:27017/",
-        #         bot_type ='codebot'
-        #     )
-        #     chat_key = "codebot_chat_histories"
-        # else:
-        #     st.error("Invalid bot selection.")
+   
         chat_id = chatbot.get_current_chat_id(user_id)
                 bot_type='tutorbot'
             )
