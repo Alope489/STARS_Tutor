@@ -171,7 +171,7 @@ class Chatbot:
         if not user_data:
             st.warning("No user data found.")
             return []
-
+        chat_key = f'{self.bot_type}_chat_histories'
         chat_histories = user_data.get(chat_key, {})
         if not chat_histories:
             st.warning(f"No chat history found for {st.session_state.selected_bot}.")
