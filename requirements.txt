@@ -5,4 +5,4 @@ fuzzywuzzy[speedup]
 chromadb
 pymongo
 streamlit
-
+cachetools

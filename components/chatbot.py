@@ -5,12 +5,16 @@ from datetime import datetime
 import uuid
 import logging
 from components.ChatChainSingleton import ChatChainSingleton
+from cachetools import cached, LFUCache, TTLCache
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 
 # Chatbot Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+# Caching global
+lfu_cache = LFUCache(maxsize=32) # Least Freq Used
 
 class Chatbot:
     def __init__(self, api_key, mongo_uri,bot_type):
@@ -99,6 +103,11 @@ class Chatbot:
                                          {'$push':{chat_history_path:{"$each":new_messages}}, #push is to push values into an existing object. Each is for pushing multiple values into that object
                                           '$set':{chat_timestamp_path: datetime.now().timestamp()}} # set is to update a specfic field in a object.
                                         ) 
+        
+        # Get chat out of cache if chat is updated
+        if chat_id in lfu_cache:
+            del lfu_cache[chat_id]
+
 
         
         user_doc = self.users_collection.find_one({'username': user_id})
@@ -119,6 +128,7 @@ class Chatbot:
         logging.info('Added message successfully')
         st.rerun() 
         return 'added successfully'
+    
     def get_all_chat_ids(self,user_id):
         user_doc = self.users_collection.find_one({'username':user_id})
         chat_histories_object = user_doc.get(f'{self.bot_type}_chat_histories')
@@ -151,6 +161,8 @@ class Chatbot:
                 logging.error("Failed to create new chat in the database.")
                 st.error("Could not create a new chat. Please try again.")
                 return
+            
+    @cached(cache=lfu_cache)
     def get_recent_chats(self,user_id, chat_key):
         """
         Fetch recent assistant messages for the selected bot's chat history.
@@ -229,15 +241,21 @@ class Chatbot:
             formatted_prompt = self.prompt.format_prompt(**prompt_values)
             response = self.chain.invoke(prompt_values)
             assistant_message = response.content
+            
+            # Clear cache before updating to db
+            self.get_recent_chats.cache_clear()
 
             #add to DB
             new_messages = [{'role':'user','content':user_message},{'role':'assistant','content':assistant_message}]
             self.add_messages_to_chat_history(user_id,new_messages)
+
+            # Re-fetch and store in cache
+            self.get_recent_chats(user_id, f"{self.bot_type}_chat_histories")
+
             logging.info("Response generated.")
             return assistant_message
+        
         except Exception as e:
             logging.error(f"Error generating response: {e}")
             return f"An error occurred: {e}"
         
-
-   

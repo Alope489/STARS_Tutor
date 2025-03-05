@@ -11,7 +11,6 @@ import os
 
 load_dotenv()
 
-
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 
@@ -192,7 +191,7 @@ if st.session_state.logged_in:
         # if not st.session_state.messages or st.session_state.messages[-1]["content"] != assistant_message:
         #     st.session_state.messages.append({"role": "assistant", "content": assistant_message})
         st.chat_message("assistant").write(assistant_message)
-        # st.rerun()
+        st.rerun()
 
     
 
