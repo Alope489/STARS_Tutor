@@ -67,7 +67,8 @@ if st.session_state.logged_in:
     
     # st.success(f"Welcome, {st.session_state.username}!")
     user_id = st.session_state.username
-
+    user_doc = users_collection.find_one({"username": user_id})
+    user_courses = user_doc.get("courses", [])
     # Initialize Chatbot based on selection
     
     # chatbot.set_current_chat_id(user_id,'f9d77b5e-cc99-4ae4-a123-a8f5afeb03f3')
@@ -76,10 +77,11 @@ if st.session_state.logged_in:
     with st.sidebar:
          
         chatbot = Chatbot(
-                api_key=st.secrets['OPENAI_API_KEY'],
-                mongo_uri="mongodb://localhost:27017/",
-                bot_type=st.session_state.selected_bot,  # Use current selected bot
-            )
+            api_key=st.secrets['OPENAI_API_KEY'],
+            mongo_uri="mongodb://localhost:27017/",
+            course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
+        )   
+
         
         colA1,col_spacing1 ,colA2 = st.columns([1,.5,.68])
         with colA1:
@@ -91,18 +93,17 @@ if st.session_state.logged_in:
 
         with colA2:
             with st.popover("Select Bot"):
-                bot_selection = st.radio("Choose your bot:", ["tutorbot", "codebot", "net-centric"])
-
+                bot_selection = st.radio("Choose your course:", user_courses)
             # Update session state if selection changes
             if bot_selection != st.session_state.selected_bot:
                 st.session_state.selected_bot = bot_selection
 
             # Initialize chatbot with the selected bot
             chatbot = Chatbot(
-                api_key=st.secrets['OPENAI_API_KEY'],
+            api_key=st.secrets['OPENAI_API_KEY'],
             mongo_uri="mongodb://localhost:27017/",
-            bot_type=st.session_state.selected_bot,
-                )
+            course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
+        )   
         
 
         chat_id = chatbot.get_current_chat_id(user_id)
