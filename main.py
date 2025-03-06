@@ -53,7 +53,17 @@ def authenticate_user(email, password):
     if user:
         logging.info(f"User authenticated: {user['username']}")
     return user
-#update
+
+
+@st.dialog('Help fine tune this model!')
+def fine_tune():
+    messages=  st.session_state.messages
+    for i in range(2,len(messages)):
+        question = messages[i-1]['content']
+        answer = messages[i]['content']
+        message = f'Question: {question} \n Answer: {answer}'
+        st.button(message,key=i)
+
 
 # App Structure
 st.title("Welcome to the Stars Tutoring Chatbot")
@@ -69,11 +79,7 @@ if st.session_state.logged_in:
     # st.success(f"Welcome, {st.session_state.username}!")
     user_id = st.session_state.username
 
-    # Initialize Chatbot based on selection
-    
-    # chatbot.set_current_chat_id(user_id,'f9d77b5e-cc99-4ae4-a123-a8f5afeb03f3')
-
-    # Sidebar for bot selection
+ 
     with st.sidebar:
         if st.button("Logout"):
             st.session_state.logged_in = False
@@ -140,6 +146,7 @@ if st.session_state.logged_in:
 
 
     # Display chat history for the selected bot
+    
     for message in st.session_state.messages:
         st.chat_message(message["role"]).write(message["content"])
 
@@ -147,16 +154,16 @@ if st.session_state.logged_in:
     user_input = st.chat_input("Type your message here...")
     if user_input:
         st.session_state.messages.append({"role": "user", "content": user_input})
+       
         st.chat_message("user").write(user_input)
-
+       
         # Generate and display response
         assistant_message = chatbot.generate_response(user_id,st.session_state.messages)
-        
-        # # Avoid duplicate assistant messages
-        # if not st.session_state.messages or st.session_state.messages[-1]["content"] != assistant_message:
-        #     st.session_state.messages.append({"role": "assistant", "content": assistant_message})
+       
         st.chat_message("assistant").write(assistant_message)
         # st.rerun()
+    st.button('Fine Tune',type='primary',on_click=fine_tune)
+    # st.rerun()
 
     
 
