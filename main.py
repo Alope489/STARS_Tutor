@@ -10,7 +10,18 @@ import uuid
 import os
 
 load_dotenv()
-
+st.markdown(
+    """
+    <style>
+        [data-testid="stSidebar"] {
+            min-width: 300px !important;
+            max-width: 300px !important;
+            overflow: hidden !important;  /* Prevents resizing */
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
@@ -83,26 +94,31 @@ if st.session_state.logged_in:
         )   
 
         
-        colA1,col_spacing1 ,colA2 = st.columns([1,.5,.68])
+        colA1,col_spacing1 ,colA2 = st.columns([1,.5,1])
         with colA1:
             if st.button("Add New Chat"):
                     chatbot.start_new_chat(user_id)
                     st.session_state.selected_chat_id = 0
                     st.success("New chat created!")
+                    st.session_state.messages = chatbot.get_current_chat_history(user_id)
+            
                     st.rerun()
 
         with colA2:
             with st.popover("Select Bot"):
-                bot_selection = st.radio("Choose your course:", user_courses)
+                bot_selection = st.radio("Choose your course:", user_courses,index=user_courses.index(st.session_state.selected_bot)) #This is to make sure when you create a new chat it stays in that bots page
             # Update session state if selection changes
             if bot_selection != st.session_state.selected_bot:
                 st.session_state.selected_bot = bot_selection
+                st.rerun()
 
+            
             # Initialize chatbot with the selected bot
-            chatbot = Chatbot(
-            api_key=st.secrets['OPENAI_API_KEY'],
-            mongo_uri="mongodb://localhost:27017/",
-            course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
+            if bot_selection != st.session_state.selected_bot:
+                chatbot = Chatbot(
+                    api_key=st.secrets['OPENAI_API_KEY'],
+                    mongo_uri="mongodb://localhost:27017/",
+                    course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
         )   
         
 
@@ -122,17 +138,18 @@ if st.session_state.logged_in:
 
         if recent_chats:
             # Populate the selectbox with recent assistant messages
-            chat_options = [chat["content"] for chat in recent_chats]
+            selected_chat_id = st.session_state.get("selected_chat_id")
 
-            for i, chat in enumerate(recent_chats):
-
+            for chat in recent_chats:
+                chat_id = chat["chat_id"]
                 button_text = chat["content"][:50] + "..."
-                if st.session_state.get("selected_chat_id") == i:
+                
+                if selected_chat_id == chat_id:
                         button_text = f"🔵 {button_text}"
 
-                if st.sidebar.button(button_text, key=i, help="click to open chat"):
+                if st.sidebar.button(button_text, key=chat_id, help="Click to open chat"):
                     # Retrieve selected chat's history
-                    st.session_state.selected_chat_id = i
+                    st.session_state.selected_chat_id = chat_id
                     selected_chat_id = chat["chat_id"]
                     chatbot.set_current_chat_id(user_id, selected_chat_id)
                     st.session_state.messages = chatbot.get_current_chat_history(user_id)
@@ -146,10 +163,10 @@ if st.session_state.logged_in:
 
         st.markdown("<br><br>", unsafe_allow_html=True)
 
-        col1,col_spacing ,col2 = st.columns([.7,.5,.3])
+        col1,col_spacing ,col2 = st.columns([1,.5,1])
         with col1:
             with  st.popover("Delete Chat"):      
-                if st.button("Yes, Delete Chat!"):
+                if st.button("Yes, Delete Current Chat!"):
                     chatbot.delete_chat(user_id)
                     st.success("chat Deleted!")
                     st.rerun()
