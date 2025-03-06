@@ -17,17 +17,17 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 lfu_cache = LFUCache(maxsize=32) # Least Freq Used
 
 class Chatbot:
-    def __init__(self, api_key, mongo_uri,bot_type):
+    def __init__(self, api_key, mongo_uri, course_name): 
         self.client = OpenAI(api_key=api_key)
         self.mongo_client = MongoClient(mongo_uri)
         self.users = self.mongo_client["user_data"]
         self.users_collection = self.users["users"]
         self.archive = self.mongo_client["chat_app"]
         self.chats_collection = self.archive["chats"]
+        self.bot_type = course_name  
         self.chain = ChatChainSingleton().chain
         self.prompt = ChatChainSingleton().prompt
-        self.bot_type = bot_type
-    
+
     def generate_chat_summary(self,chat_history):
         """
         Generate a summary of the chat using LangChain.
