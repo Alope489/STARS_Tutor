@@ -12,7 +12,10 @@ from langchain.prompts import (
     FewShotChatMessagePromptTemplate,
     MessagesPlaceholder,
 )
-
+import jsonlines 
+import pandas as pd
+import csv
+import os
 class ChatChainSingleton:
     _instance = None
     chain = None
@@ -29,11 +32,31 @@ class ChatChainSingleton:
     @classmethod
     def initialize_chain(cls, model: str = "gpt-4o") -> Any:
         logging.info("Initializing ChatChain.")
-        with open('components/examples.json','r') as file:
-            examples = json.load(file)[st.session_state.selected_bot]
+        # CSV reading, but need to convert to dict for metadata
+        with open('components/examples.csv','r',newline='',encoding='utf-8') as file:
+            csv_reader = csv.DictReader(file)
+            examples = [row for row in csv_reader]
+        print(examples)
+
+        #using jsonl would be most ideal to avoid converting dataframe to dict for metadata below but won't work
+        #JSONL 1:
+        # with jsonlines.open(f'components/examples/{st.session_state.selected_bot}.jsonl') as jsonl_f:
+        #     try:
+        #         examples = [obj for obj in jsonl_f]
+        #     except json.decoder.JSONDecodeError as e:
+        #         pass
+        #JSONL 2: 
+        # examples = []
+        # with open(f'components/examples/{st.session_state.selected_bot}.jsonl','r',encoding='utf-8') as file:
+        #     for line in file:
+        #         json_obj = json.loads(line.strip())
+        #         examples.append(json_obj)
+        # print('printed examples!!')
+        # print(examples)
         try:
             embeddings = OpenAIEmbeddings(api_key=st.secrets['OPENAI_API_KEY'] )
-            to_vectorize = [" ".join(example.values()) for example in examples]
+            to_vectorize = ['.'.join(example.values()) for example in examples]
+            print(to_vectorize)
             vectorstore = Chroma.from_texts(to_vectorize, embeddings, metadatas=examples, persist_directory= r"Documents")
             logging.info("Chroma initialized.")
         except Exception as e:

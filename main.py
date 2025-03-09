@@ -9,6 +9,7 @@ from datetime import datetime
 import uuid
 import os
 import json
+import csv
 load_dotenv()
 
 
@@ -57,8 +58,15 @@ def authenticate_user(email, password):
 
 def set_current_completion(completion):
     st.session_state.selected_completion = completion
-    
 
+def add_examples(selected_bot,input,output):
+    #bot_type, input, output
+    row = [selected_bot,input,output]
+    with open('components/examples.csv','a') as f:
+        writer = csv.writer(f)
+        writer.writerow(row)
+        f.close()
+    st.success('Added Example')
 
 @st.dialog('Help fine tune this model!')
 def fine_tune():
@@ -74,14 +82,18 @@ def fine_tune():
                 st.json(completion)
                 st.button('Select',key=i,on_click=set_current_completion,args=[completion])
    
-    if st.session_state.selected_completion:
+    selected_completion = st.session_state.selected_completion
+    if selected_completion:
         with st.expander('Perform Fine Tuning'):
-            st.write(st.session_state.selected_completion)
+            st.write(selected_completion)
             follow_up_question_needed = st.selectbox('Are Follow up questions needed here?',('Yes','No'),index=None,placeholder='Yes/No')
             code_accuracy = st.selectbox('How accurately does the generated code perform the task?',('Failure','Slightly','Moderately','Highly'),index=None,placeholder='Select Accuracy')
             requirements_fufilled = st.selectbox('Does the generated code fulfill the requirements?',('Yes','No'),index=None,placeholder='Yes/No')
             final_answer = st.text_area('Preferred Answer: ')
-            st.button('Submit')
+            example = f"""Are Follow up questions needed here? {follow_up_question_needed}.How accurately does the generated code perform the task? : It {code_accuracy} performs the task
+                Does the generated code fulfill the requirements? : {requirements_fufilled}. Final Answer : {final_answer}
+            """
+            st.button('Submit',on_click=add_examples,args=[st.session_state.selected_bot,selected_completion['Question'],example])
  
 
 
