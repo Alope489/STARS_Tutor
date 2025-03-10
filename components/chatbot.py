@@ -133,7 +133,7 @@ class Chatbot:
         user_doc = self.users_collection.find_one({'username':user_id})
         chat_histories_object = user_doc.get(f'{self.bot_type}_chat_histories')
         chat_ids = chat_histories_object.keys()
-        self.update_chat_summary(user_id, chat_id, chat_history)
+        self.update_chat_summary(user_id, chat_ids, chat_histories_object)
         return list(chat_ids)
     
     def start_new_chat(self,user_id): 
@@ -258,4 +258,5 @@ class Chatbot:
         except Exception as e:
             logging.error(f"Error generating response: {e}")
             return f"An error occurred: {e}"
+        
         

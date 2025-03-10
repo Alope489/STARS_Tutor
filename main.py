@@ -58,6 +58,11 @@ def authenticate_user(email, password):
 # App Structure
 st.title("Welcome to the Stars Tutoring Chatbot")
 
+def modal_popup():
+    @st.dialog()
+        
+
+
 if st.session_state.logged_in:
     # Display a success message temporarily
     # temp solution
@@ -98,6 +103,7 @@ if st.session_state.logged_in:
 
         # Fetch Recent Assistant Chats
         recent_chats = chatbot.get_recent_chats(user_id)
+
 
         if recent_chats:
             # Populate the selectbox with recent assistant messages
@@ -142,6 +148,10 @@ if st.session_state.logged_in:
     # Display chat history for the selected bot
     for message in st.session_state.messages:
         st.chat_message(message["role"]).write(message["content"])
+    if st.button("Fine Tune!", type='primary' , on_click=''):
+
+    
+
 
     # User Input
     user_input = st.chat_input("Type your message here...")
