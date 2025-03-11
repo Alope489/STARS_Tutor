@@ -31,28 +31,10 @@ class ChatChainSingleton:
 
     @classmethod
     def initialize_chain(cls, model: str = "gpt-4o") -> Any:
-        logging.info("Initializing ChatChain.")
-        # CSV reading, but need to convert to dict for metadata
-        with open('components/examples.csv','r',newline='',encoding='utf-8') as file:
-            csv_reader = csv.DictReader(file)
-            examples = [row for row in csv_reader]
-        print(examples)
-
-        #using jsonl would be most ideal to avoid converting dataframe to dict for metadata below but won't work
-        #JSONL 1:
-        # with jsonlines.open(f'components/examples/{st.session_state.selected_bot}.jsonl') as jsonl_f:
-        #     try:
-        #         examples = [obj for obj in jsonl_f]
-        #     except json.decoder.JSONDecodeError as e:
-        #         pass
-        #JSONL 2: 
-        # examples = []
-        # with open(f'components/examples/{st.session_state.selected_bot}.jsonl','r',encoding='utf-8') as file:
-        #     for line in file:
-        #         json_obj = json.loads(line.strip())
-        #         examples.append(json_obj)
-        # print('printed examples!!')
-        # print(examples)
+        logging.info("Initializing ChatChain.")    
+        with jsonlines.open(f'components/examples/{st.session_state.selected_bot}.jsonl') as jsonl_f:
+            examples = [obj for obj in jsonl_f]
+            
         try:
             embeddings = OpenAIEmbeddings(api_key=st.secrets['OPENAI_API_KEY'] )
             to_vectorize = ['.'.join(example.values()) for example in examples]
