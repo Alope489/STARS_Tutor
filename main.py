@@ -11,6 +11,7 @@ import os
 import json
 import csv
 import jsonlines
+from components.system_prompt import system_prompt
 load_dotenv()
 
 
@@ -65,7 +66,15 @@ def add_examples(selected_bot,input,output):
     new_entry = {'input':input,'output':output}
     with jsonlines.open(f'components/examples/{selected_bot}.jsonl','a') as writer:
         writer.write(new_entry)
-    st.success('Added Example')
+    st.success('Created Few shot prompt and completion for training!')
+
+def add_completions(prompt,answer):
+    """
+    {"messages": [{"role": "system", "content": "Marv is a factual chatbot that is also sarcastic."}, {"role": "user", "content": "What's the capital of France?"}, {"role": "assistant", "content": "Paris, as if everyone doesn't know that already."}]}
+    """
+    completion = {"messages":[{"role":"system","content":system_prompt},{"role":"user","content":prompt},{"role":"assistant","content":answer}]}
+    with jsonlines.open('components/completions.jsonl','a') as writer:
+        writer.write(completion)
 
 @st.dialog('Help fine tune this model!')
 def fine_tune():
@@ -97,6 +106,7 @@ def fine_tune():
                 submitted = st.form_submit_button("Submit")
                 if submitted:
                     add_examples(st.session_state.selected_bot,selected_completion['Question'],example)
+                    add_completions(selected_completion['Question'],final_answer)
                 # st.button('Submit',on_click=add_examples,args=[st.session_state.selected_bot,selected_completion['Question'],example])
  
 
