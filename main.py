@@ -11,7 +11,18 @@ import os
 import json
 import csv
 load_dotenv()
-
+st.markdown(
+    """
+    <style>
+        [data-testid="stSidebar"] {
+            min-width: 300px !important;
+            max-width: 300px !important;
+            overflow: hidden !important;  /* Prevents resizing */
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
@@ -99,6 +110,7 @@ def fine_tune():
 
 # App Structure
 st.title("Welcome to the Stars Tutoring Chatbot")
+
 if st.session_state.logged_in:
     # Display a success message temporarily
     # temp solution
@@ -111,22 +123,55 @@ if st.session_state.logged_in:
     user_id = st.session_state.username
 
  
-    with st.sidebar:
-        if st.button("Logout"):
-            st.session_state.logged_in = False
-            st.session_state.username = ""
-            st.session_state.messages = []
-            st.rerun()
+    user_doc = users_collection.find_one({"username": user_id})
+    user_courses = user_doc.get("courses", [])
+    # Initialize Chatbot based on selection
+    
+    # chatbot.set_current_chat_id(user_id,'f9d77b5e-cc99-4ae4-a123-a8f5afeb03f3')
 
-        st.sidebar.title("Select Bot")
-        bot_selection = st.sidebar.radio("Choose your bot:", ["tutorbot", "codebot",'net-centric'])
-        if bot_selection!=st.session_state.selected_bot:
-            st.session_state.selected_bot = bot_selection
+    # Sidebar for bot selection
+    with st.sidebar:
+         
         chatbot = Chatbot(
-                api_key=st.secrets['OPENAI_API_KEY'],
-                mongo_uri="mongodb://localhost:27017/",
-                bot_type=bot_selection,
-            )
+            api_key=st.secrets['OPENAI_API_KEY'],
+            mongo_uri="mongodb://localhost:27017/",
+            course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
+        )   
+
+        
+        colA1,col_spacing1 ,colA2 = st.columns([1,.5,1])
+        with colA1:
+            if st.button("Add New Chat"):
+                    chatbot.start_new_chat(user_id)
+                    st.session_state.selected_chat_id = 0
+                    st.success("New chat created!")
+                    st.session_state.messages = chatbot.get_current_chat_history(user_id)
+            
+                    st.rerun()
+
+        with colA2:
+            with st.popover("Select Bot"):
+                bot_selection = st.radio("Choose your course:", user_courses,index=user_courses.index(st.session_state.selected_bot)) #This is to make sure when you create a new chat it stays in that bots page
+            # Update session state if selection changes
+            if bot_selection != st.session_state.selected_bot:
+                st.session_state.selected_bot = bot_selection
+                st.rerun()
+
+            
+            # Initialize chatbot with the selected bot
+            if bot_selection != st.session_state.selected_bot:
+                chatbot = Chatbot(
+                    api_key=st.secrets['OPENAI_API_KEY'],
+                    mongo_uri="mongodb://localhost:27017/",
+                    course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
+        )   
+        
+
+        chat_id = chatbot.get_current_chat_id(user_id)
+        if chat_id!='deleted':
+            st.session_state.messages = chatbot.get_current_chat_history(user_id)
+            # st.rerun()
+        st.title(f"{st.session_state.selected_bot.capitalize()} Chat History")
    
         chat_id = chatbot.get_current_chat_id(user_id)
         if chat_id!='deleted':
@@ -139,17 +184,18 @@ if st.session_state.logged_in:
 
         if recent_chats:
             # Populate the selectbox with recent assistant messages
-            chat_options = [chat["content"] for chat in recent_chats]
+            selected_chat_id = st.session_state.get("selected_chat_id")
 
-            for i, chat in enumerate(recent_chats):
-
+            for chat in recent_chats:
+                chat_id = chat["chat_id"]
                 button_text = chat["content"][:50] + "..."
-                if st.session_state.get("selected_chat_id") == i:
+                
+                if selected_chat_id == chat_id:
                         button_text = f"🔵 {button_text}"
 
-                if st.sidebar.button(button_text, key=i, help="click to open chat"):
+                if st.sidebar.button(button_text, key=chat_id, help="Click to open chat"):
                     # Retrieve selected chat's history
-                    st.session_state.selected_chat_id = i
+                    st.session_state.selected_chat_id = chat_id
                     selected_chat_id = chat["chat_id"]
                     chatbot.set_current_chat_id(user_id, selected_chat_id)
                     st.session_state.messages = chatbot.get_current_chat_history(user_id)
@@ -161,20 +207,25 @@ if st.session_state.logged_in:
             chatbot.start_new_chat(user_id)
             st.session_state.messages = chatbot.get_current_chat_history(user_id)
 
-        col1, col2 = st.columns(2)
+        st.markdown("<br><br>", unsafe_allow_html=True)
+
+        col1,col_spacing ,col2 = st.columns([1,.5,1])
         with col1:
-            if st.button("Add New Chat"):
-                chatbot.start_new_chat(user_id)
-                st.session_state.selected_chat_id = 0
-                st.success("New chat created!")
-                st.rerun()
-        with col2:
             with  st.popover("Delete Chat"):      
-                if st.button("Yes, Delete Chat!"):
+                if st.button("Yes, Delete Current Chat!"):
                     chatbot.delete_chat(user_id)
                     st.success("chat Deleted!")
                     st.rerun()
+        with col2:
+            if st.button("Logout"):
+                st.session_state.logged_in = False
+                st.session_state.username = ""
+                st.session_state.messages = []
+                st.rerun()
 
+            
+
+    st.title(f"Welcome to the Stars Tutoring {st.session_state.selected_bot.capitalize()} Chatbot")
 
 
     # Display chat history for the selected bot
