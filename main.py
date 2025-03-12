@@ -8,7 +8,10 @@ from dotenv import load_dotenv
 from datetime import datetime
 import uuid
 import os
-
+import json
+import csv
+import jsonlines
+from components.system_prompt import system_prompt
 load_dotenv()
 st.markdown(
     """
@@ -33,11 +36,12 @@ users_collection = db["users"]
 archive = client["chat_app"]
 chats_collection = archive["chats"]
 
-
+st.session_state.expander_open = False
 # Initialize session state
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.username = ""
+    st.session_state.selected_completion = None
 if "auth_mode" not in st.session_state:
     st.session_state.auth_mode = "Sign In"
 if "messages" not in st.session_state:
@@ -64,9 +68,62 @@ def authenticate_user(email, password):
     if user:
         logging.info(f"User authenticated: {user['username']}")
     return user
-#update
+
+def set_current_completion(completion):
+    st.session_state.selected_completion = completion
+
+def add_examples(selected_bot,input,output):
+    #input is the user question. Output is the questions plus user answers
+    new_entry = {'input':input,'output':output}
+    with jsonlines.open(f'components/examples/{selected_bot}.jsonl','a') as writer:
+        writer.write(new_entry)
+    st.success('Created Few shot prompt and completion for training!')
+
+def add_completions(prompt,answer):
+    """
+    {"messages": [{"role": "system", "content": "Marv is a factual chatbot that is also sarcastic."}, {"role": "user", "content": "What's the capital of France?"}, {"role": "assistant", "content": "Paris, as if everyone doesn't know that already."}]}
+    """
+    completion = {"messages":[{"role":"system","content":system_prompt},{"role":"user","content":prompt},{"role":"assistant","content":answer}]}
+    with jsonlines.open('components/completions.jsonl','a') as writer:
+        writer.write(completion)
+
+@st.dialog('Help fine tune this model!')
+def fine_tune():
+    messages=  st.session_state.messages
+    with st.expander('View Completions',expanded=st.session_state.expander_open):
+        for i in range(2,len(messages),2):
+                question = messages[i-1]['content']
+                answer = messages[i]['content']
+                if len(answer)>200:
+                    answer = answer[:200] + '...'
+                message = f'Question: {question} \n Answer: {answer}'
+                completion = {'Question':question,'Answer':answer}
+                st.json(completion)
+                st.button('Select',key=i,on_click=set_current_completion,args=[completion])
+   
+    selected_completion = st.session_state.selected_completion
+    if selected_completion:
+        with st.expander('Perform Fine Tuning'):
+            st.write(selected_completion)
+            with st.form('my_form',clear_on_submit=True):
+                follow_up_question_needed = st.selectbox('Are Follow up questions needed here?',('Yes','No'),index=None,placeholder='Yes/No')
+                code_accuracy = st.selectbox('How accurately does the generated code perform the task?',('Failure','Slightly','Moderately','Highly'),index=None,placeholder='Select Accuracy')
+                requirements_fufilled = st.selectbox('Does the generated code fulfill the requirements?',('Yes','No'),index=None,placeholder='Yes/No')
+                final_answer = st.text_area('Preferred Answer: ')
+
+                example = f"""Are Follow up questions needed here? {follow_up_question_needed}.How accurately does the generated code perform the task? : It {code_accuracy} performs the task
+                    Does the generated code fulfill the requirements? : {requirements_fufilled}. Final Answer : {final_answer}
+                """
+                submitted = st.form_submit_button("Submit")
+                if submitted:
+                    add_examples(st.session_state.selected_bot,selected_completion['Question'],example)
+                    add_completions(selected_completion['Question'],final_answer)
+                # st.button('Submit',on_click=add_examples,args=[st.session_state.selected_bot,selected_completion['Question'],example])
+ 
+
 
 # App Structure
+st.title("Welcome to the Stars Tutoring Chatbot")
 
 if st.session_state.logged_in:
     # Display a success message temporarily
@@ -78,6 +135,8 @@ if st.session_state.logged_in:
     
     # st.success(f"Welcome, {st.session_state.username}!")
     user_id = st.session_state.username
+
+ 
     user_doc = users_collection.find_one({"username": user_id})
     user_courses = user_doc.get("courses", [])
     # Initialize Chatbot based on selection
@@ -131,6 +190,7 @@ if st.session_state.logged_in:
         chat_id = chatbot.get_current_chat_id(user_id)
         if chat_id!='deleted':
             st.session_state.messages = chatbot.get_current_chat_history(user_id)
+            # st.session_state.selected_completion = st.session_state.messages[-1]
             # st.rerun()
 
         # Fetch Recent Assistant Chats
@@ -183,6 +243,7 @@ if st.session_state.logged_in:
 
 
     # Display chat history for the selected bot
+    
     for message in st.session_state.messages:
         st.chat_message(message["role"]).write(message["content"])
 
@@ -190,16 +251,16 @@ if st.session_state.logged_in:
     user_input = st.chat_input("Type your message here...")
     if user_input:
         st.session_state.messages.append({"role": "user", "content": user_input})
+       
         st.chat_message("user").write(user_input)
-
+       
         # Generate and display response
         assistant_message = chatbot.generate_response(user_id,st.session_state.messages)
-        
-        # # Avoid duplicate assistant messages
-        # if not st.session_state.messages or st.session_state.messages[-1]["content"] != assistant_message:
-        #     st.session_state.messages.append({"role": "assistant", "content": assistant_message})
+       
         st.chat_message("assistant").write(assistant_message)
         # st.rerun()
+    st.button('Fine Tune',type='primary',on_click=fine_tune)
+    # st.rerun()
 
     
 
