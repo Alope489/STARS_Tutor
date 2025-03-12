@@ -80,7 +80,7 @@ def add_examples(selected_bot,input,output):
 
 def add_completions(selected_bot,prompt,answer):
     with open("components/system_prompt.json","r") as file:
-            system_prompt = json.load(file[st.session_state.selected_bot])
+            system_prompt = json.load(file)[0][st.session_state.selected_bot]
         
     completion = {"messages":[{"role":"system","content":system_prompt},{"role":"user","content":prompt},{"role":"assistant","content":answer}]}
     with jsonlines.open(f"components/completions/{selected_bot}_completions.jsonl",'a') as writer:
