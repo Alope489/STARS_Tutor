@@ -10,6 +10,8 @@ import uuid
 import os
 import json
 import csv
+import jsonlines
+from components.system_prompt import system_prompt
 load_dotenv()
 st.markdown(
     """
@@ -71,13 +73,19 @@ def set_current_completion(completion):
     st.session_state.selected_completion = completion
 
 def add_examples(selected_bot,input,output):
-    #bot_type, input, output
-    row = [selected_bot,input,output]
-    with open('components/examples.csv','a') as f:
-        writer = csv.writer(f)
-        writer.writerow(row)
-        f.close()
-    st.success('Added Example')
+    #input is the user question. Output is the questions plus user answers
+    new_entry = {'input':input,'output':output}
+    with jsonlines.open(f'components/examples/{selected_bot}.jsonl','a') as writer:
+        writer.write(new_entry)
+    st.success('Created Few shot prompt and completion for training!')
+
+def add_completions(prompt,answer):
+    """
+    {"messages": [{"role": "system", "content": "Marv is a factual chatbot that is also sarcastic."}, {"role": "user", "content": "What's the capital of France?"}, {"role": "assistant", "content": "Paris, as if everyone doesn't know that already."}]}
+    """
+    completion = {"messages":[{"role":"system","content":system_prompt},{"role":"user","content":prompt},{"role":"assistant","content":answer}]}
+    with jsonlines.open('components/completions.jsonl','a') as writer:
+        writer.write(completion)
 
 @st.dialog('Help fine tune this model!')
 def fine_tune():
@@ -97,14 +105,20 @@ def fine_tune():
     if selected_completion:
         with st.expander('Perform Fine Tuning'):
             st.write(selected_completion)
-            follow_up_question_needed = st.selectbox('Are Follow up questions needed here?',('Yes','No'),index=None,placeholder='Yes/No')
-            code_accuracy = st.selectbox('How accurately does the generated code perform the task?',('Failure','Slightly','Moderately','Highly'),index=None,placeholder='Select Accuracy')
-            requirements_fufilled = st.selectbox('Does the generated code fulfill the requirements?',('Yes','No'),index=None,placeholder='Yes/No')
-            final_answer = st.text_area('Preferred Answer: ')
-            example = f"""Are Follow up questions needed here? {follow_up_question_needed}.How accurately does the generated code perform the task? : It {code_accuracy} performs the task
-                Does the generated code fulfill the requirements? : {requirements_fufilled}. Final Answer : {final_answer}
-            """
-            st.button('Submit',on_click=add_examples,args=[st.session_state.selected_bot,selected_completion['Question'],example])
+            with st.form('my_form',clear_on_submit=True):
+                follow_up_question_needed = st.selectbox('Are Follow up questions needed here?',('Yes','No'),index=None,placeholder='Yes/No')
+                code_accuracy = st.selectbox('How accurately does the generated code perform the task?',('Failure','Slightly','Moderately','Highly'),index=None,placeholder='Select Accuracy')
+                requirements_fufilled = st.selectbox('Does the generated code fulfill the requirements?',('Yes','No'),index=None,placeholder='Yes/No')
+                final_answer = st.text_area('Preferred Answer: ')
+
+                example = f"""Are Follow up questions needed here? {follow_up_question_needed}.How accurately does the generated code perform the task? : It {code_accuracy} performs the task
+                    Does the generated code fulfill the requirements? : {requirements_fufilled}. Final Answer : {final_answer}
+                """
+                submitted = st.form_submit_button("Submit")
+                if submitted:
+                    add_examples(st.session_state.selected_bot,selected_completion['Question'],example)
+                    add_completions(selected_completion['Question'],final_answer)
+                # st.button('Submit',on_click=add_examples,args=[st.session_state.selected_bot,selected_completion['Question'],example])
  
 
 

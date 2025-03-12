@@ -5,3 +5,4 @@ chromadb
 pymongo
 streamlit
 cachetools
+jsonlines
