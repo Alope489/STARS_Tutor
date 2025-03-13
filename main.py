@@ -11,6 +11,7 @@ import os
 import json
 import csv
 import jsonlines
+from components.fine_tuning import perform_fine_tuning
 load_dotenv()
 st.markdown(
     """
@@ -85,6 +86,7 @@ def add_completions(selected_bot,prompt,answer):
     completion = {"messages":[{"role":"system","content":system_prompt},{"role":"user","content":prompt},{"role":"assistant","content":answer}]}
     with jsonlines.open(f"components/completions/{selected_bot}_completions.jsonl",'a') as writer:
         writer.write(completion)
+    perform_fine_tuning()
 
 @st.dialog('Help fine tune this model!')
 def fine_tune():

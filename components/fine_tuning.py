@@ -6,7 +6,7 @@ client = OpenAI(api_key=st.secrets['OPENAI_API_KEY'])
 
 def upload_training_file():
     file = client.files.create(
-        file=open("components/completions.jsonl", "rb"),
+        file=open(f"components/{st.session_state.selected_bot}_completions.jsonl", "rb"),
         purpose="fine-tune"
     )
     return file.id
@@ -25,6 +25,3 @@ def perform_fine_tuning():
 
     
 
-# perform_fine_tuning()
-print(client.fine_tuning.jobs.list(limit=10)
-)
