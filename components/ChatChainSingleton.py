@@ -57,6 +57,8 @@ class ChatChainSingleton:
         )
 
         #Assemble the final prompt template
+        with open("components/system_prompt.json","r") as file:
+            system_prompt = json.load(file[st.session_state.selected_bot])
         final_prompt = ChatPromptTemplate.from_messages(
             [
                 (
