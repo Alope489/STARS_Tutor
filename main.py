@@ -49,7 +49,7 @@ if "messages" not in st.session_state:
 if "selected_bot" not in st.session_state:
     st.session_state.selected_bot = "tutorbot"  # Default bot selection
 
-# Helper Functions
+#TODO move these to helper folder Helper Functions
 def validate_email(email):
     """Ensure the email ends with @fiu.edu."""
     return email.endswith("@fiu.edu")
@@ -106,6 +106,7 @@ def fine_tune():
     if selected_completion:
         with st.expander('Perform Fine Tuning'):
             st.write(selected_completion)
+            #Form for uploading examples and completions
             with st.form('my_form',clear_on_submit=True):
                 follow_up_question_needed = st.selectbox('Are Follow up questions needed here?',('Yes','No'),index=None,placeholder='Yes/No')
                 code_accuracy = st.selectbox('How accurately does the generated code perform the task?',('Failure','Slightly','Moderately','Highly'),index=None,placeholder='Select Accuracy')
@@ -124,7 +125,7 @@ def fine_tune():
 
 
 # App Structure
-st.title("Welcome to the Stars Tutoring Chatbot")
+st.title("Stars Tutoring Chatbot")
 
 if st.session_state.logged_in:
     # Display a success message temporarily
@@ -137,7 +138,7 @@ if st.session_state.logged_in:
     # st.success(f"Welcome, {st.session_state.username}!")
     user_id = st.session_state.username
 
- 
+    #TODO move to function get_courses inside chatbot
     user_doc = users_collection.find_one({"username": user_id})
     user_courses = user_doc.get("courses", [])
     # Initialize Chatbot based on selection
@@ -240,7 +241,7 @@ if st.session_state.logged_in:
 
             
 
-    st.title(f"Welcome to the Stars Tutoring {st.session_state.selected_bot.capitalize()} Chatbot")
+    
 
 
     # Display chat history for the selected bot
