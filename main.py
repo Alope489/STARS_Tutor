@@ -12,6 +12,8 @@ import json
 import csv
 import jsonlines
 from components.fine_tuning import perform_fine_tuning
+from components.helper import validate_email,add_user,authenticate_user,set_current_completion,add_examples,add_completions,fine_tune
+
 load_dotenv()
 st.markdown(
     """
@@ -30,11 +32,7 @@ st.markdown(
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 
 # MongoDB Configuration
-client = MongoClient("mongodb://localhost:27017/")
-db = client["user_data"]
-users_collection = db["users"]
-archive = client["chat_app"]
-chats_collection = archive["chats"]
+
 
 st.session_state.expander_open = False
 # Initialize session state
@@ -49,81 +47,6 @@ if "messages" not in st.session_state:
 if "selected_bot" not in st.session_state:
     st.session_state.selected_bot = "tutorbot"  # Default bot selection
 
-#TODO move these to helper folder Helper Functions
-def validate_email(email):
-    """Ensure the email ends with @fiu.edu."""
-    return email.endswith("@fiu.edu")
-
-def add_user(username, email, password):
-    """Add a new user to the database."""
-    if users_collection.find_one({"email": email}):
-        return "Email already registered."
-    users_collection.insert_one({"username": username, "email": email, "password": password})
-    logging.info(f"New user added: {username}, {email}")
-    return "success"
-
-def authenticate_user(email, password):
-    """Authenticate user with email and password."""
-    user = users_collection.find_one({"email": email, "password": password})
-    if user:
-        logging.info(f"User authenticated: {user['username']}")
-    return user
-
-def set_current_completion(completion):
-    st.session_state.selected_completion = completion
-
-def add_examples(selected_bot,input,output):
-    #input is the user question. Output is the questions plus user answers
-    new_entry = {'input':input,'output':output}
-    with jsonlines.open(f'components/examples/{selected_bot}.jsonl','a') as writer:
-        writer.write(new_entry)
-    st.success('Created Few shot prompt and completion for training!')
-
-def add_completions(selected_bot,prompt,answer):
-    with open("components/system_prompt.json","r") as file:
-            system_prompt = json.load(file[st.session_state.selected_bot])
-        
-    completion = {"messages":[{"role":"system","content":system_prompt},{"role":"user","content":prompt},{"role":"assistant","content":answer}]}
-    with jsonlines.open(f"components/completions/{selected_bot}_completions.jsonl",'a') as writer:
-        writer.write(completion)
-    perform_fine_tuning()
-
-@st.dialog('Help fine tune this model!')
-def fine_tune():
-    messages=  st.session_state.messages
-    with st.expander('View Completions',expanded=st.session_state.expander_open):
-        for i in range(2,len(messages),2):
-                question = messages[i-1]['content']
-                answer = messages[i]['content']
-                if len(answer)>200:
-                    answer = answer[:200] + '...'
-                message = f'Question: {question} \n Answer: {answer}'
-                completion = {'Question':question,'Answer':answer}
-                st.json(completion)
-                st.button('Select',key=i,on_click=set_current_completion,args=[completion])
-   
-    selected_completion = st.session_state.selected_completion
-    if selected_completion:
-        with st.expander('Perform Fine Tuning'):
-            st.write(selected_completion)
-            #Form for uploading examples and completions
-            with st.form('my_form',clear_on_submit=True):
-                follow_up_question_needed = st.selectbox('Are Follow up questions needed here?',('Yes','No'),index=None,placeholder='Yes/No')
-                code_accuracy = st.selectbox('How accurately does the generated code perform the task?',('Failure','Slightly','Moderately','Highly'),index=None,placeholder='Select Accuracy')
-                requirements_fufilled = st.selectbox('Does the generated code fulfill the requirements?',('Yes','No'),index=None,placeholder='Yes/No')
-                final_answer = st.text_area('Preferred Answer: ')
-
-                example = f"""Are Follow up questions needed here? {follow_up_question_needed}.How accurately does the generated code perform the task? : It {code_accuracy} performs the task
-                    Does the generated code fulfill the requirements? : {requirements_fufilled}. Final Answer : {final_answer}
-                """
-                submitted = st.form_submit_button("Submit")
-                if submitted:
-                    add_examples(st.session_state.selected_bot,selected_completion['Question'],example)
-                    add_completions(st.session_state.selected_bot,selected_completion['Question'],final_answer)
-                # st.button('Submit',on_click=add_examples,args=[st.session_state.selected_bot,selected_completion['Question'],example])
- 
-
-
 # App Structure
 st.title("Stars Tutoring Chatbot")
 
@@ -134,27 +57,18 @@ if st.session_state.logged_in:
     placeholder.success(f"Welcome, {st.session_state.username}!")  # Show the success message
     time.sleep(2)  # Wait for 2 seconds
     placeholder.empty()  # Clear the message after 2 seconds
-    
-    # st.success(f"Welcome, {st.session_state.username}!")
-    user_id = st.session_state.username
 
-    #TODO move to function get_courses inside chatbot
-    user_doc = users_collection.find_one({"username": user_id})
-    user_courses = user_doc.get("courses", [])
-    # Initialize Chatbot based on selection
     
-    # chatbot.set_current_chat_id(user_id,'f9d77b5e-cc99-4ae4-a123-a8f5afeb03f3')
 
-    # Sidebar for bot selection
     with st.sidebar:
-         
         chatbot = Chatbot(
             api_key=st.secrets['OPENAI_API_KEY'],
             mongo_uri="mongodb://localhost:27017/",
             course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
         )   
 
-        
+        user_id = st.session_state.username
+        user_courses = chatbot.get_courses(user_id)
         colA1,col_spacing1 ,colA2 = st.columns([1,.5,1])
         with colA1:
             if st.button("Add New Chat"):
@@ -180,7 +94,8 @@ if st.session_state.logged_in:
                     api_key=st.secrets['OPENAI_API_KEY'],
                     mongo_uri="mongodb://localhost:27017/",
                     course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
-        )   
+        ) 
+        
         
 
         chat_id = chatbot.get_current_chat_id(user_id)
@@ -240,10 +155,6 @@ if st.session_state.logged_in:
                 st.rerun()
 
             
-
-    
-
-
     # Display chat history for the selected bot
     
     for message in st.session_state.messages:
