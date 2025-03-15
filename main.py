@@ -71,7 +71,7 @@ if st.session_state.logged_in:
         user_courses = chatbot.get_courses(user_id)
         colA1,col_spacing1 ,colA2 = st.columns([1,.5,1])
         with colA1:
-            if st.button("Add New Chat"):
+            if st.button("New Chat"):
                     chatbot.start_new_chat(user_id)
                     st.session_state.selected_chat_id = 0
                     st.success("New chat created!")
@@ -80,7 +80,7 @@ if st.session_state.logged_in:
                     st.rerun()
 
         with colA2:
-            with st.popover("Select Bot"):
+            with st.popover("Bot"):
                 bot_selection = st.radio("Choose your course:", user_courses,index=user_courses.index(st.session_state.selected_bot)) #This is to make sure when you create a new chat it stays in that bots page
             # Update session state if selection changes
             if bot_selection != st.session_state.selected_bot:
@@ -101,14 +101,12 @@ if st.session_state.logged_in:
         chat_id = chatbot.get_current_chat_id(user_id)
         if chat_id!='deleted':
             st.session_state.messages = chatbot.get_current_chat_history(user_id)
-            # st.rerun()
         st.title(f"{st.session_state.selected_bot.capitalize()} Chat History")
    
         chat_id = chatbot.get_current_chat_id(user_id)
         if chat_id!='deleted':
             st.session_state.messages = chatbot.get_current_chat_history(user_id)
-            # st.session_state.selected_completion = st.session_state.messages[-1]
-            # st.rerun()
+         
 
         # Fetch Recent Assistant Chats
         recent_chats = chatbot.get_recent_chats(user_id)
@@ -171,9 +169,7 @@ if st.session_state.logged_in:
         assistant_message = chatbot.generate_response(user_id,st.session_state.messages)
        
         st.chat_message("assistant").write(assistant_message)
-        # st.rerun()
     st.button('Fine Tune',type='primary',on_click=fine_tune)
-    # st.rerun()
 
     
 

@@ -25,5 +25,3 @@ def perform_fine_tuning():
 
     
 
-fine_tuning_jobs = client.fine_tuning.jobs.list()
-print(fine_tuning_jobs)

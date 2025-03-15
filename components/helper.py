@@ -3,16 +3,19 @@ import logging
 import jsonlines 
 from pymongo import MongoClient
 import json 
-from components.system_prompt import system_prompts
-from components.fine_tuning import perform_fine_tuning
-
+from system_prompt import system_prompts
+from fine_tuning import perform_fine_tuning
+from groq import Groq
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
 client = MongoClient("mongodb://localhost:27017/")
 db = client["user_data"]
 users_collection = db["users"]
 archive = client["chat_app"]
 chats_collection = archive["chats"]
-
+groq_client = Groq(api_key=os.getenv('GROQ_API_KEY'))
 
 def validate_email(email):
     """Ensure the email ends with @fiu.edu."""
@@ -50,6 +53,31 @@ def add_completions(selected_bot,prompt,answer):
         writer.write(completion)
     perform_fine_tuning()
 
+def validate_final_answer(user_question,final_answer):
+    system_prompt = system_prompts['tutorbot']
+    validation_prompt = f"""You will fine tune responses for this AI model. You wil be given a user question and an assistant's answer as well the model's system prompt. 
+    Based on the answer you return True or False whether it:
+    1) Does it Answers Question Fully
+    2) Does it Stay within domain of subject
+    3) Does it explain the underlying concepts and help guide the student to the solution through their own efforts, or does it provide a direct solution that does not require effort on the students behalf?
+
+    User question: {user_question}
+    Assistant Response : {final_answer}
+
+    System Prompt for this model : {system_prompt}
+
+     You must answer in this json format :
+     {{
+     "result" : true
+     }}
+       """
+    completion = groq_client.chat.completions.create(
+        model="DeepSeek-R1-Distill-Llama-70b",
+        messages=[{"role":"system","content":validation_prompt}],
+        response_format={"type":"json_object"}
+    )
+    return json.loads(completion.choices[0].message.content)['result']
+    
 @st.dialog('Help fine tune this model!')
 def fine_tune():
         messages=  st.session_state.messages
@@ -84,3 +112,11 @@ def fine_tune():
                         add_completions(st.session_state.selected_bot,selected_completion['Question'],final_answer)
                     # st.button('Submit',on_click=add_examples,args=[st.session_state.selected_bot,selected_completion['Question'],example])
 
+
+user_question = "I'm getting a error with this Python code: for i in range(10) print(i)"
+final_answer = """It looks like there's a syntax issue in your code. Python requires a specific punctuation mark at the end of a for loop declaration before the indented block of code can follow.
+
+Think about how Python differentiates between a statement that introduces a block (like loops and conditionals) and a regular line of code. What punctuation is typically used in these cases?
+
+Try adding that missing element and see if it resolves the error. Let me know if you need more guidance!"""
+print(validate_final_answer(user_question,final_answer))
