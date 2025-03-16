@@ -39,7 +39,6 @@ class ChatChainSingleton:
         try:
             embeddings = OpenAIEmbeddings(api_key=st.secrets['OPENAI_API_KEY'] )
             to_vectorize = ['.'.join(example.values()) for example in examples]
-            print(to_vectorize)
             vectorstore = Chroma.from_texts(to_vectorize, embeddings, metadatas=examples, persist_directory= r"Documents")
             logging.info("Chroma initialized.")
         except Exception as e:

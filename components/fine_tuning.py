@@ -14,7 +14,7 @@ def upload_training_file():
 def create_fine_tuning_job(file_id):
     fine_tune_job = client.fine_tuning.jobs.create(
     training_file=file_id,
-    model="gpt-4o-mini-2024-07-18:sandia-national-labs::BALUhqg9"
+    model="gpt-4o-mini-2024-07-18"
 )
     return fine_tune_job
 
@@ -24,4 +24,4 @@ def perform_fine_tuning():
     return fine_tune_job
 
     
-
+print()

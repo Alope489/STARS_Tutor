@@ -3,8 +3,8 @@ import logging
 import jsonlines 
 from pymongo import MongoClient
 import json 
-from system_prompt import system_prompts
-from fine_tuning import perform_fine_tuning
+from components.system_prompt import system_prompts
+from components.fine_tuning import perform_fine_tuning
 from groq import Groq
 from dotenv import load_dotenv
 import os
@@ -16,6 +16,7 @@ users_collection = db["users"]
 archive = client["chat_app"]
 chats_collection = archive["chats"]
 groq_client = Groq(api_key=os.getenv('GROQ_API_KEY'))
+
 
 def validate_email(email):
     """Ensure the email ends with @fiu.edu."""
@@ -43,7 +44,7 @@ def add_examples(selected_bot,input,output):
     new_entry = {'input':input,'output':output}
     with jsonlines.open(f'components/examples/{selected_bot}.jsonl','a') as writer:
         writer.write(new_entry)
-    st.success('Created Few shot prompt and completion for training!')
+    
 
 def add_completions(selected_bot,prompt,answer):
     system_prompt = system_prompts[st.session_state.selected_bot]
@@ -97,26 +98,27 @@ def fine_tune():
             with st.expander('Perform Fine Tuning'):
                 st.write(selected_completion)
                 #Form for uploading examples and completions
-                with st.form('my_form',clear_on_submit=True):
+                with st.form('my_form'):
                     follow_up_question_needed = st.selectbox('Are Follow up questions needed here?',('Yes','No'),index=None,placeholder='Yes/No')
                     code_accuracy = st.selectbox('How accurately does the generated code perform the task?',('Failure','Slightly','Moderately','Highly'),index=None,placeholder='Select Accuracy')
                     requirements_fufilled = st.selectbox('Does the generated code fulfill the requirements?',('Yes','No'),index=None,placeholder='Yes/No')
                     final_answer = st.text_area('Preferred Answer: ')
 
+                    filled_in = all([follow_up_question_needed,code_accuracy,requirements_fufilled,final_answer])
                     example = f"""Are Follow up questions needed here? {follow_up_question_needed}.How accurately does the generated code perform the task? : It {code_accuracy} performs the task
                         Does the generated code fulfill the requirements? : {requirements_fufilled}. Final Answer : {final_answer}
                     """
-                    submitted = st.form_submit_button("Submit")
-                    if submitted:
-                        add_examples(st.session_state.selected_bot,selected_completion['Question'],example)
-                        add_completions(st.session_state.selected_bot,selected_completion['Question'],final_answer)
-                    # st.button('Submit',on_click=add_examples,args=[st.session_state.selected_bot,selected_completion['Question'],example])
+                    submit = st.form_submit_button("Submit")
+                    if submit:
+                        if filled_in:
+                            is_valid = validate_final_answer(selected_completion['Question'],final_answer)                                
+                            if is_valid:
+                                add_examples(st.session_state.selected_bot,selected_completion['Question'],example)
+                                add_completions(st.session_state.selected_bot,selected_completion['Question'],final_answer)
+                                st.success('Created Few shot prompt and completion for training!')
 
-
-user_question = "I'm getting a error with this Python code: for i in range(10) print(i)"
-final_answer = """It looks like there's a syntax issue in your code. Python requires a specific punctuation mark at the end of a for loop declaration before the indented block of code can follow.
-
-Think about how Python differentiates between a statement that introduces a block (like loops and conditionals) and a regular line of code. What punctuation is typically used in these cases?
-
-Try adding that missing element and see if it resolves the error. Let me know if you need more guidance!"""
-print(validate_final_answer(user_question,final_answer))
+                            else:
+                                st.error('Your answer is either incorrect, not answering the question fully, or is not conducive to student learning, Try again!')
+                        else:
+                            st.error('You must fill in the answers')
+                    
