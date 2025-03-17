@@ -11,8 +11,8 @@ import os
 import json
 import csv
 import jsonlines
-from components.fine_tuning import perform_fine_tuning
-from components.helper import validate_email,add_user,authenticate_user,set_current_completion,add_examples,add_completions,fine_tune
+from components.fine_tuning import perform_fine_tuning,set_current_completion,add_examples,add_completions,fine_tune
+from components.sign_in import validate_email,authenticate_user,add_user,perform_sign_in_or_up
 
 load_dotenv()
 st.markdown(
@@ -140,7 +140,7 @@ if st.session_state.logged_in:
 
         col1,col_spacing ,col2 = st.columns([1,.5,1])
         with col1:
-            with  st.popover("Delete Chat"):      
+            with  st.popover("Delete"):      
                 if st.button("Yes, Delete Current Chat!"):
                     chatbot.delete_chat(user_id)
                     st.success("chat Deleted!")
@@ -174,41 +174,4 @@ if st.session_state.logged_in:
     
 
 else:
-    if st.session_state.auth_mode == "Sign In":
-        st.subheader("Sign In")
-        email = st.text_input("FIU Email Address")
-        password = st.text_input("Password", type="password")
-        if st.button("Login"):
-            user = authenticate_user(email, password)
-            if user:
-                st.session_state.logged_in = True
-                st.session_state.username = user["username"]
-                st.success(f"Welcome back, {user['username']}!")
-                st.rerun()
-            else:
-                st.error("Invalid email or password.")
-        if st.button("Sign Up"):
-            st.session_state.auth_mode = "Sign Up"
-            st.rerun()
-
-    elif st.session_state.auth_mode == "Sign Up":
-        st.subheader("Sign Up")
-        username = st.text_input("Username")
-        email = st.text_input("FIU Email Address")
-        password = st.text_input("Password", type="password")
-        if st.button("Sign Up"):
-            if not validate_email(email):
-                st.error("Please use a valid FIU email address.")
-            elif len(password) < 8:
-                st.error("Password must be at least 8 characters long.")
-            else:
-                result = add_user(username, email, password)
-                if result == "success":
-                    st.success("Account created successfully! Please log in.")
-                    st.session_state.auth_mode = "Sign In"
-                    st.rerun()
-                else:
-                    st.error(result)
-        if st.button("Sign In"):
-            st.session_state.auth_mode = "Sign In"
-            st.rerun()
+    perform_sign_in_or_up()
