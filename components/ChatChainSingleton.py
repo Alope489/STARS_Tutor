@@ -16,7 +16,7 @@ import jsonlines
 import pandas as pd
 import csv
 import os
-from components.system_prompt import system_prompt
+from components.system_prompt import system_prompts
 class ChatChainSingleton:
     _instance = None
     chain = None
@@ -39,7 +39,6 @@ class ChatChainSingleton:
         try:
             embeddings = OpenAIEmbeddings(api_key=st.secrets['OPENAI_API_KEY'] )
             to_vectorize = ['.'.join(example.values()) for example in examples]
-            print(to_vectorize)
             vectorstore = Chroma.from_texts(to_vectorize, embeddings, metadatas=examples, persist_directory= r"Documents")
             logging.info("Chroma initialized.")
         except Exception as e:
@@ -57,8 +56,7 @@ class ChatChainSingleton:
         )
 
         #Assemble the final prompt template
-        with open("components/system_prompt.json","r") as file:
-            system_prompt = json.load(file[st.session_state.selected_bot])
+        system_prompt = system_prompts[st.session_state.selected_bot]
         final_prompt = ChatPromptTemplate.from_messages(
             [
                 (
