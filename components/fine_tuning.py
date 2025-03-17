@@ -43,26 +43,6 @@ def perform_fine_tuning():
     fine_tune_job = create_fine_tuning_job(file_id)
     return fine_tune_job
 
-    
-def validate_email(email):
-    """Ensure the email ends with @fiu.edu."""
-    return email.endswith("@fiu.edu")
-
-def add_user(username, email, password):
-    """Add a new user to the database."""
-    if users_collection.find_one({"email": email}):
-        return "Email already registered."
-    users_collection.insert_one({"username": username, "email": email, "password": password})
-    logging.info(f"New user added: {username}, {email}")
-    return "success"
-
-def authenticate_user(email, password):
-    """Authenticate user with email and password."""
-    user = users_collection.find_one({"email": email, "password": password})
-    if user:
-        logging.info(f"User authenticated: {user['username']}")
-    return user
-
 def set_current_completion(completion):
     st.session_state.selected_completion = completion
 
