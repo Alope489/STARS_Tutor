@@ -19,10 +19,7 @@ users_collection = db["users"]
 archive = client["chat_app"]
 chats_collection = archive["chats"]
 groq_client = Groq(api_key=os.getenv('GROQ_API_KEY'))
-
-
 openai_client = OpenAI(api_key=st.secrets['OPENAI_API_KEY'])
-
 
 def upload_training_file():
     file = openai_client.files.create(
@@ -123,7 +120,8 @@ def fine_tune():
                                 add_examples(st.session_state.selected_bot,selected_completion['Question'],example)
                                 add_completions(st.session_state.selected_bot,selected_completion['Question'],final_answer)
                                 st.success('Created Few shot prompt and completion for training!')
-
+                                st.session_state.selected_completion = None
+                                st.rerun()
                             else:
                                 st.error('Your answer is either incorrect, not answering the question fully, or is not conducive to student learning, Try again!')
                         else:
