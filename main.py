@@ -69,7 +69,7 @@ if st.session_state.logged_in:
 
         user_id = st.session_state.username
         user_courses = chatbot.get_courses(user_id)
-        colA1,col_spacing1 ,colA2 = st.columns([1.5,.5,1])
+        colA1,col_spacing1 ,colA2 = st.columns([1,.5,1])
         with colA1:
             if st.button("New Chat"):
                     chatbot.start_new_chat(user_id)
@@ -109,20 +109,22 @@ if st.session_state.logged_in:
         recent_chats = chatbot.get_recent_chats(user_id)
 
         if recent_chats:
-            def select_chat(chat_id):
-                st.session_state.selected_chat_id = chat_id
-                chatbot.set_current_chat_id(user_id, chat_id)
-                st.session_state.messages = chatbot.get_current_chat_history(user_id)
-            
+            # Populate the selectbox with recent assistant messages
+            selected_chat_id = st.session_state.get("selected_chat_id")
 
             for chat in recent_chats:
                 chat_id = chat["chat_id"]
                 button_text = chat["content"][:50] + "..."
                 
-                if st.session_state("selected_chat_id") == chat_id:
+                if selected_chat_id == chat_id:
                         button_text = f"🔵 {button_text}"
 
-                st.sidebar.button(button_text, key=chat_id,on_click=select_chat, args=(chat_id,) ,help="Click to open chat")
+                if st.sidebar.button(button_text, key=chat_id, help="Click to open chat"):
+                    # Retrieve selected chat's history
+                    st.session_state.selected_chat_id = chat_id
+                    selected_chat_id = chat["chat_id"]
+                    chatbot.set_current_chat_id(user_id, selected_chat_id)
+                    st.session_state.messages = chatbot.get_current_chat_history(user_id)
 
             
             
