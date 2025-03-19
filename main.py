@@ -127,17 +127,63 @@ def fine_tune():
                 # st.button('Submit',on_click=add_examples,args=[st.session_state.selected_bot,selected_completion['Question'],example])
  
 
-
-# App Structure
-
-
+# Admin functions
 def get_courses():
     courses = list(course_collection.find({}))
     return courses
 
+@st.dialog("Add new classes")
+def addclassModal():
+    st.write('Add new classes')
+    with st.form(key='class_form'):
+        course_code = st.text_input("Insert class code:")
+        course_name = st.text_input("Insert class name")
+        course_id = st.text_input('insert class id')
+        submit = st.form_submit_button('Submit')
+
+        if submit:
+            course_collection.insert_one({"course_name": course_name, "course_code": course_code, "course_id": course_id})
+            st.success(f"Class {course_name} added successfully!")
+            st.rerun()
+
+            #         """Add a new user to the database."""
+            # if users_collection.find_one({"email": email}):
+            #     return "Email already registered."
+            # users_collection.insert_one({"username": username, "email": email, "password": password})
+            # logging.info(f"New user added: {username}, {email}")
+            # return "success"
+
+@st.dialog("Remove a course")
+def removeClassModal():
+    st.write('Remove a course')
+    with st.form(key='class_form'):
+        course_code = st.text_input("Insert class code:")
+        submit = st.form_submit_button('Submit')
+
+        if submit:
+            course_collection.delete_one({"course_code": course_code,})
+            st.success(f"Class {course_code} removed successfully!")
+            st.rerun()
+            # if result.deleted_count > 0:
+                
+            # else:
+            #     st.error(f"No class found with code {course_code}.")
+            # st.rerun()
+
+
+
+# def add_course():
+    
+
+# App Structure
+
+
+
+
+
 
 if st.session_state.logged_in:
-        
+    #Admin UI
     if st.session_state.user_type =="admin":
         st.title("Welcome to the admin dashboard")
         st.write("Admin dashboard to add or remove courses")
@@ -152,12 +198,10 @@ if st.session_state.logged_in:
 
             st.table(df)
             
-            # if st.button("Add new course"):
-                
-
-        
-
-    
+            if st.button("Add new course"):
+                addclassModal()
+            if st.button("Remove course"):
+                removeClassModal()
 
     else:
         st.title("Welcome to the Stars Tutoring Chatbot")
