@@ -170,7 +170,7 @@ if st.session_state.logged_in:
        
         st.chat_message("assistant").write(assistant_message)
     st.button('Fine Tune',type='primary',on_click=fine_tune)
-
+    
     
 
 else:

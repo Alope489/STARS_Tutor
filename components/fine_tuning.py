@@ -18,9 +18,11 @@ db = client["user_data"]
 users_collection = db["users"]
 archive = client["chat_app"]
 chats_collection = archive["chats"]
-groq_client = Groq(api_key=os.getenv('GROQ_API_KEY'))
+groq_client = Groq(api_key=st.secrets['GROQ_API_KEY'])
 openai_client = OpenAI(api_key=st.secrets['OPENAI_API_KEY'])
 
+if 'selected_bot' not in st.session_state:
+    st.session_state.selected_bot = 'tutorbot'
 def upload_training_file():
     file = openai_client.files.create(
         file=open(f"components/completions/{st.session_state.selected_bot}_completions.jsonl", "rb"),
@@ -59,22 +61,38 @@ def add_completions(selected_bot,prompt,answer):
     perform_fine_tuning()
 
 def validate_final_answer(user_question,final_answer):
-    system_prompt = system_prompts['tutorbot']
-    validation_prompt = f"""You will fine tune responses for this AI model. You wil be given a user question and an assistant's answer as well the model's system prompt. 
-    Based on the answer you return True or False whether it:
-    1) Does it Answers Question Fully
-    2) Does it Stay within domain of subject
-    3) Does it explain the underlying concepts and help guide the student to the solution through their own efforts, or does it provide a direct solution that does not require effort on the students behalf?
+    print(user_question,final_answer)
+    selected_bot = st.session_state.selected_bot
+    system_prompt = system_prompts[selected_bot]
+    validation_prompt = ""
+    if selected_bot=='tutorbot' or selected_bot=='codebot':
+        validation_prompt = f"""
+            User question: {user_question}
+            Assistant Response : {final_answer}
 
-    User question: {user_question}
-    Assistant Response : {final_answer}
+            Ensure the question is being answered fully and staying within the realm of computer science
+            You must answer in this json format :
+            {{
+            "result" : True/False
+            }}
+       
+        """
+    else:
+        validation_prompt = f"""You will fine tune responses for this AI model. You wil be given a user question and an assistant's answer as well the model's system prompt. 
+        Based on the answer you return True or False whether it:
+        1) Does it Answers Question well
+        2) Does it Stay within domain of subject
+        3) Only for answers related to code : Does it explain the underlying concepts and help guide the student to the solution through their own efforts, or does it provide a direct solution that does not require effort on the students behalf?
 
-    System Prompt for this model : {system_prompt}
+        User question: {user_question}
+        Assistant Response : {final_answer}
 
-     You must answer in this json format :
-     {{
-     "result" : true
-     }}
+        System Prompt for this model : {system_prompt}
+
+        You must answer in this json format :
+        {{
+        "result" : True/False
+        }}
        """
     completion = groq_client.chat.completions.create(
         model="DeepSeek-R1-Distill-Llama-70b",
@@ -123,7 +141,7 @@ def fine_tune():
                                 st.session_state.selected_completion = None
                                 st.rerun()
                             else:
-                                st.error('Your answer is either incorrect, not answering the question fully, or is not conducive to student learning, Try again!')
+                                st.error('Your answer is either incorrect, not answering the question well, out of scope, or is not conducive to student learning, Try again!')
                         else:
                             st.error('You must fill in the answers')
-                    
+
