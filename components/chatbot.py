@@ -29,7 +29,7 @@ class Chatbot:
         self.prompt = ChatChainSingleton().prompt
 
     def generate_chat_summary(self,chat_history):
-        """
+        """start_new_chat
         Generate a summary of the chat using LangChain.
         """
         prompt_template = """
@@ -130,7 +130,6 @@ class Chatbot:
 
         #in front end, it is added to the session state automatically
         logging.info('Added message successfully')
-        st.rerun() 
         return 'added successfully'
     
     def get_all_chat_ids(self,user_id):

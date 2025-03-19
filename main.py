@@ -74,10 +74,7 @@ if st.session_state.logged_in:
             if st.button("New Chat"):
                     chatbot.start_new_chat(user_id)
                     st.session_state.selected_chat_id = 0
-                    st.success("New chat created!")
                     st.session_state.messages = chatbot.get_current_chat_history(user_id)
-            
-                    st.rerun()
 
         with colA2:
             with st.popover("Bot"):
@@ -128,7 +125,7 @@ if st.session_state.logged_in:
                     selected_chat_id = chat["chat_id"]
                     chatbot.set_current_chat_id(user_id, selected_chat_id)
                     st.session_state.messages = chatbot.get_current_chat_history(user_id)
-                    st.rerun()
+
             
             
         else:

@@ -106,7 +106,6 @@ if st.session_state.logged_in:
         st.session_state.logged_in = False
         st.session_state.username = ""
         st.session_state.messages = {}
-        st.rerun()
 
 else:
     if st.session_state.auth_mode == "Sign In":
@@ -119,12 +118,10 @@ else:
                 st.session_state.logged_in = True
                 st.session_state.username = user["username"]
                 st.success(f"Welcome back, {user['username']}!")
-                st.rerun()
             else:
                 st.error("Invalid email or password.")
         if st.button("Sign Up"):
             st.session_state.auth_mode = "Sign Up"
-            st.rerun()
 
     elif st.session_state.auth_mode == "Sign Up":
         st.subheader("Sign Up")
@@ -141,9 +138,7 @@ else:
                 if result == "success":
                     st.success("Account created successfully! Please log in.")
                     st.session_state.auth_mode = "Sign In"
-                    st.rerun()
                 else:
                     st.error(result)
         if st.button("Sign In"):
             st.session_state.auth_mode = "Sign In"
-            st.rerun()
