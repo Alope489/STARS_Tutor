@@ -84,7 +84,7 @@ class Chatbot:
             chat_histories = user_doc.get(f'{self.bot_type}_chat_histories')
             if not chat_histories:
                 #create one and return original assistant prompt
-                original_message = {"role": "assistant","content":f"Hi! I am {self.bot_type}, I will help you improve your prompts!"}
+                original_message = {"role": "assistant","content":f"Hi! I am a {self.bot_type} fined tuned bot, I will help you with any question regarding this domain!"}
                 self.users_collection.update_one({"username":user_id},
                                                 {"$set":{f"{self.bot_type}_chat_histories":{chat_id:{'timestamp':datetime.now().timestamp(),'chat_history': [original_message]}}}}
                                                 )
@@ -92,6 +92,10 @@ class Chatbot:
             current_chat = chat_histories[chat_id]['chat_history']
             return current_chat
         return None
+    def get_courses(self,user_id):
+        user_doc = user_doc = self.users_collection.find_one({'username':user_id})
+        user_courses = user_doc.get("courses", [])
+        return user_courses
     
     def add_messages_to_chat_history(self,user_id,new_messages):
         chat_id = self.get_current_chat_id(user_id)
