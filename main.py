@@ -14,6 +14,8 @@ import jsonlines
 from components.fine_tuning import perform_fine_tuning,set_current_completion,add_examples,add_completions,fine_tune
 from components.sign_in import validate_email,authenticate_user,add_user,perform_sign_in_or_up
 
+
+
 load_dotenv()
 st.markdown(
     """
@@ -119,7 +121,7 @@ if st.session_state.logged_in:
 
         with colA2:
             with st.popover("Bot"):
-                bot_selection = st.radio("Choose your course:", user_courses,index=user_courses.index(st.session_state.selected_bot)) #This is to make sure when you create a new chat it stays in that bots page
+                bot_selection = st.radio("Choose your course:", user_courses,index=user_courses.index(st.session_state.selected_bot),key="selected_bot") #This is to make sure when you create a new chat it stays in that bots page
             # Update session state if selection changes
             
             # Initialize chatbot with the selected bot
@@ -132,7 +134,7 @@ if st.session_state.logged_in:
                     course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
         ) 
                 st.session_state.selected_chat_id = chatbot.get_current_chat_id(st.session_state.username)
-                st.rerun()
+                
         
         
         st.title(f"{st.session_state.selected_bot.capitalize()} Chat History")
@@ -173,7 +175,7 @@ if st.session_state.logged_in:
             assistant_message = chatbot.generate_response(user_id,st.session_state.messages)
 
        
-        st.chat_message("assistant").write(assistant_message)
+        
     
     if len(st.session_state.messages) > 1:
         if st.button("Fine Tune"):
