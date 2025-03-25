@@ -42,7 +42,7 @@ class Chatbot:
 
         llm = ChatOpenAI(
             temperature = 0,
-            model_name="gpt-3.5-turbo",
+            model_name="gpt-3.5-turbo-0125",
             api_key=st.secrets['OPENAI_API_KEY']
         )
 
@@ -222,11 +222,30 @@ class Chatbot:
                     "$set": {f"current_chat_id_{self.bot_type}": None}  # Reset the current chat ID
                     }
                 )
-            # Clear session state messages
-        st.session_state.messages = []
+        
+        
         self.set_current_chat_id(user_id,'deleted')
         logging.info(f"Chat with ID {current_chat_id} deleted successfully.")
-        st.success("Chat deleted successfully!")
+
+        recent_chats = self.get_recent_chats(user_id)
+
+        new_chat_id = next((chat["chat_id"] for chat in recent_chats if chat["chat_id"] != current_chat_id), None)
+
+        # Set the new current chat
+        self.set_current_chat_id(user_id, new_chat_id)
+        st.session_state.selected_chat_id = new_chat_id
+        # Clear session state messages
+        st.session_state.messages = []
+
+        # Notify user
+        if new_chat_id:
+            self.set_current_chat_id(user_id, new_chat_id)
+            st.success("Chat deleted successfully! Switched to the most recent chat.")
+        else:
+            self.set_current_chat_id(user_id, None)
+            st.warning("Chat deleted. No chats available.")
+
+        st.rerun()
 
     def generate_response(self, user_id, messages):
         try:
@@ -253,7 +272,7 @@ class Chatbot:
             self.add_messages_to_chat_history(user_id,new_messages)
 
             # Re-fetch and store in cache
-            self.get_recent_chats(user_id, f"{self.bot_type}_chat_histories")
+            self.get_recent_chats(user_id)
 
             logging.info("Response generated.")
             return assistant_message

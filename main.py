@@ -19,8 +19,8 @@ st.markdown(
     """
     <style>
         [data-testid="stSidebar"] {
-            min-width: 300px !important;
-            max-width: 300px !important;
+            min-width: 340px !important;
+            max-width: 340px !important;
             overflow: hidden !important;  /* Prevents resizing */
         }
     </style>
@@ -46,6 +46,8 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 if "selected_bot" not in st.session_state:
     st.session_state.selected_bot = "tutorbot"  # Default bot selection
+if "show_fine_tune" not in st.session_state:
+    st.session_state.show_fine_tune = False
 
 # App Structure
 st.title("Stars Tutoring Chatbot")
@@ -58,7 +60,37 @@ if st.session_state.logged_in:
     time.sleep(2)  # Wait for 2 seconds
     placeholder.empty()  # Clear the message after 2 seconds
 
-    
+    def  generate_chats(chatbot, user_id):
+            recent_chats = chatbot.get_recent_chats(user_id)
+
+            if recent_chats:
+                # Populate the selectbox with recent assistant messages
+                def select_chat(chat_id):
+                    st.session_state.selected_chat_id = chat_id
+                    chatbot.set_current_chat_id(user_id, chat_id)
+                    st.session_state.messages = chatbot.get_current_chat_history(user_id)
+                
+
+                for chat in recent_chats:
+                    chat_id = chat["chat_id"]
+                    button_text = chat["content"][:50] + "..."
+                    
+                    if st.session_state.get("selected_chat_id") == chat_id:
+                            button_text = f"🔵 {button_text}"
+
+                    st.sidebar.button(
+                        button_text, 
+                        key=chat_id, 
+                        help="Click to open chat",
+                        on_click=select_chat,
+                        args=(chat_id,))
+                        
+            else:
+                st.sidebar.warning("No chats available to display.")
+                chatbot.start_new_chat(user_id)
+                st.session_state.messages = chatbot.get_current_chat_history(user_id)
+
+
 
     with st.sidebar:
         chatbot = Chatbot(
@@ -69,85 +101,53 @@ if st.session_state.logged_in:
 
         user_id = st.session_state.username
         user_courses = chatbot.get_courses(user_id)
-        colA1,col_spacing1 ,colA2 = st.columns([1,.5,1])
+
+        chat_id = chatbot.get_current_chat_id(user_id)
+        chat_history = chatbot.get_current_chat_history(user_id) if chat_id != 'deleted' else []
+        st.session_state.selected_chat_id = chat_id
+        st.session_state.messages = chat_history
+
+        
+        colA1,col_spacing1 ,colA2 = st.columns([1,.8,1])
         with colA1:
             if st.button("New Chat"):
                     chatbot.start_new_chat(user_id)
-                    st.session_state.selected_chat_id = 0
+                    new_chat_id = chatbot.get_current_chat_id(user_id)
+                    st.session_state.selected_chat_id = new_chat_id 
                     st.session_state.messages = chatbot.get_current_chat_history(user_id)
+                    
 
         with colA2:
             with st.popover("Bot"):
                 bot_selection = st.radio("Choose your course:", user_courses,index=user_courses.index(st.session_state.selected_bot)) #This is to make sure when you create a new chat it stays in that bots page
             # Update session state if selection changes
-            if bot_selection != st.session_state.selected_bot:
-                st.session_state.selected_bot = bot_selection
-                st.rerun()
-
             
             # Initialize chatbot with the selected bot
             if bot_selection != st.session_state.selected_bot:
+                st.session_state.selected_bot = bot_selection
+                
                 chatbot = Chatbot(
                     api_key=st.secrets['OPENAI_API_KEY'],
                     mongo_uri="mongodb://localhost:27017/",
                     course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
         ) 
+                st.session_state.selected_chat_id = chatbot.get_current_chat_id(st.session_state.username)
+                st.rerun()
         
         
-
-        chat_id = chatbot.get_current_chat_id(user_id)
-        if chat_id!='deleted':
-            st.session_state.messages = chatbot.get_current_chat_history(user_id)
         st.title(f"{st.session_state.selected_bot.capitalize()} Chat History")
-   
-        chat_id = chatbot.get_current_chat_id(user_id)
-        if chat_id!='deleted':
-            st.session_state.messages = chatbot.get_current_chat_history(user_id)
-         
-
-        # Fetch Recent Assistant Chats
-        recent_chats = chatbot.get_recent_chats(user_id)
-
-        if recent_chats:
-            # Populate the selectbox with recent assistant messages
-            def select_chat(chat_id):
-                st.session_state.selected_chat_id = chat_id
-                chatbot.set_current_chat_id(user_id, chat_id)
-                st.session_state.messages = chatbot.get_current_chat_history(user_id)
-            
-
-            for chat in recent_chats:
-                chat_id = chat["chat_id"]
-                button_text = chat["content"][:50] + "..."
-                
-                if st.session_state.get("selected_chat_id") == chat_id:
-                        button_text = f"🔵 {button_text}"
-
-                st.sidebar.button(
-                    button_text, 
-                    key=chat_id, 
-                    help="Click to open chat",
-                    on_click=select_chat,
-                    args=(chat_id,))
-                
-                    
-
-            
-            
-        else:
-            st.sidebar.warning("No chats available to display.")
-            chatbot.start_new_chat(user_id)
-            st.session_state.messages = chatbot.get_current_chat_history(user_id)
+        generate_chats(chatbot, user_id)
+        
+        
 
         st.markdown("<br><br>", unsafe_allow_html=True)
 
-        col1,col_spacing ,col2 = st.columns([1,.5,1])
+        col1,col_spacing ,col2 = st.columns([1,.8,1])
         with col1:
             with  st.popover("Delete"):      
                 if st.button("Yes, Delete Current Chat!"):
                     chatbot.delete_chat(user_id)
-                    st.success("chat Deleted!")
-                    st.rerun()
+                    
         with col2:
             if st.button("Logout"):
                 st.session_state.logged_in = False
@@ -169,11 +169,16 @@ if st.session_state.logged_in:
         st.chat_message("user").write(user_input)
        
         # Generate and display response
-        assistant_message = chatbot.generate_response(user_id,st.session_state.messages)
+        with st.spinner("Writing..."):
+            assistant_message = chatbot.generate_response(user_id,st.session_state.messages)
+
        
         st.chat_message("assistant").write(assistant_message)
-    st.button('Fine Tune',type='primary',on_click=fine_tune)
-
+    
+    if len(st.session_state.messages) > 1:
+        if st.button("Fine Tune"):
+            fine_tune()
+        
     
 
 else:
