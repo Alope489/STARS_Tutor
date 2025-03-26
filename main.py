@@ -121,19 +121,14 @@ if st.session_state.logged_in:
 
         with colA2:
             with st.popover("Bot"):
-                bot_selection = st.radio("Choose your course:", user_courses,index=user_courses.index(st.session_state.selected_bot),key="selected_bot") #This is to make sure when you create a new chat it stays in that bots page
+                bot_selection = st.radio("Choose your course:", user_courses,key="selected_bot") #This is to make sure when you create a new chat it stays in that bots page
             # Update session state if selection changes
             
             # Initialize chatbot with the selected bot
             if bot_selection != st.session_state.selected_bot:
                 st.session_state.selected_bot = bot_selection
-                
-                chatbot = Chatbot(
-                    api_key=st.secrets['OPENAI_API_KEY'],
-                    mongo_uri="mongodb://localhost:27017/",
-                    course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
-        ) 
                 st.session_state.selected_chat_id = chatbot.get_current_chat_id(st.session_state.username)
+               
                 
         
         
@@ -149,7 +144,7 @@ if st.session_state.logged_in:
             with  st.popover("Delete"):      
                 if st.button("Yes, Delete Current Chat!"):
                     chatbot.delete_chat(user_id)
-                    
+                                  
         with col2:
             if st.button("Logout"):
                 st.session_state.logged_in = False
@@ -174,9 +169,7 @@ if st.session_state.logged_in:
         with st.spinner("Writing..."):
             assistant_message = chatbot.generate_response(user_id,st.session_state.messages)
 
-       
         
-    
     if len(st.session_state.messages) > 1:
         if st.button("Fine Tune"):
             fine_tune()

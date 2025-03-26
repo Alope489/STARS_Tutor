@@ -260,21 +260,22 @@ class Chatbot:
 
         new_chat_id = next((chat["chat_id"] for chat in recent_chats if chat["chat_id"] != current_chat_id), None)
 
-        # Set the new current chat
-        self.set_current_chat_id(user_id, new_chat_id)
-        st.session_state.selected_chat_id = new_chat_id
-        # Clear session state messages
-        st.session_state.messages = []
 
         # Notify user
         if new_chat_id:
             self.set_current_chat_id(user_id, new_chat_id)
+            st.session_state.selected_chat_id = new_chat_id
+            st.session_state.messages = self.get_current_chat_history(user_id)
             st.success("Chat deleted successfully! Switched to the most recent chat.")
         else:
             self.set_current_chat_id(user_id, None)
+            st.session_state.selected_chat_id = None
+            st.session_state.messages = []
             st.warning("Chat deleted. No chats available.")
 
         st.rerun()
+
+        
 
     def generate_response(self, user_id, messages):
         try:
