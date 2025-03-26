@@ -1,6 +1,8 @@
 from pymongo import MongoClient
 import streamlit as st
 import logging
+import hashlib
+import os
 
 client = MongoClient("mongodb://localhost:27017/")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
@@ -10,6 +12,10 @@ users_collection = db["users"]
 archive = client["chat_app"]
 chats_collection = archive["chats"]
 
+def hash_password(password, salt):
+    """Hashes password with a given salt using SHA-256."""
+    return hashlib.sha256((salt + password).encode()).hexdigest()
+
 def validate_email(email):
     """Ensure the email ends with @fiu.edu."""
     return email.endswith("@fiu.edu")
@@ -18,15 +24,23 @@ def add_user(username, email, password):
     """Add a new user to the database."""
     if users_collection.find_one({"email": email}):
         return "Email already registered."
-    users_collection.insert_one({"username": username, "email": email, "password": password})
+    
+    salt = os.urandom(16).hex()
+    hashed_password = hash_password(password, salt)
+    users_collection.insert_one({"username": username, "email": email, "password": hashed_password, "salt": salt})
     logging.info(f"New user added: {username}, {email}")
     return "success"
+
 def authenticate_user(email, password):
     """Authenticate user with email and password."""
-    user = users_collection.find_one({"email": email, "password": password})
+    user = users_collection.find_one({"email": email})
     if user:
-        logging.info(f"User authenticated: {user['username']}")
-    return user
+        input_password = hash_password(password, user["salt"])
+
+        if input_password == user["password"]:
+            logging.info(f"User authenticated: {user['username']}")
+            return user
+    return "User invalid, please input the correct credentials."
 
 def perform_sign_in_or_up():
      if st.session_state.auth_mode == "Sign In":
