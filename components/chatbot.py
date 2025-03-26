@@ -93,7 +93,7 @@ class Chatbot:
             return current_chat
         return None
     def get_courses(self,user_id):
-        user_doc = user_doc = self.users_collection.find_one({'username':user_id})
+        user_doc = self.users_collection.find_one({'username':user_id})
         user_courses = user_doc.get("courses", [])
         return user_courses
     
