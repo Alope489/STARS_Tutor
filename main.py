@@ -34,9 +34,45 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 
 # MongoDB Configuration
 
-
+client = MongoClient("mongodb://localhost:27017/")
 coursedb = client['courses']
 course_collection = coursedb['course_list']
+
+db = client["user_data"]
+users_collection = db["users"]
+
+
+
+#Admin helper functions
+@st.dialog("Remove a course")
+def removeClassModal():
+    st.write('Remove a course')
+    with st.form(key='class_form'):
+        course_code = st.text_input("Insert class code:")
+        submit = st.form_submit_button('Submit')
+
+        if submit:
+            course_collection.delete_one({"course_code": course_code,})
+            st.success(f"Class {course_code} removed successfully!")
+            st.rerun()
+
+@st.dialog("Add new classes")
+def addclassModal():
+    st.write('Add new classes')
+    with st.form(key='class_form'):
+        course_code = st.text_input("Insert class code:")
+        course_name = st.text_input("Insert class name")
+        course_id = st.text_input('insert class id')
+        submit = st.form_submit_button('Submit')
+
+        if submit:
+            course_collection.insert_one({"course_name": course_name, "course_code": course_code, "course_id": course_id})
+            st.success(f"Class {course_name} added successfully!")
+            st.rerun()
+    
+def get_courses():
+    courses = list(course_collection.find({}))
+    return courses
 
 
 st.session_state.expander_open = False
@@ -55,6 +91,7 @@ if "selected_bot" not in st.session_state:
 
 # App Structure
 st.title("Stars Tutoring Chatbot")
+
 
 if st.session_state.logged_in:
     #Admin UI
@@ -229,3 +266,5 @@ if st.session_state.logged_in:
 
 else:
     perform_sign_in_or_up()
+
+
