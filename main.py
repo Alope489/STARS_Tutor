@@ -3,7 +3,9 @@ import time
 import streamlit as st
 from pymongo import MongoClient
 import logging
+import pandas as pd
 from components.chatbot import Chatbot
+from components.admin import mongo_uri,client,coursedb,users_collection,admin_panel
 from dotenv import load_dotenv
 from datetime import datetime
 import uuid
@@ -13,7 +15,6 @@ import csv
 import jsonlines
 from components.fine_tuning import perform_fine_tuning,set_current_completion,add_examples,add_completions,fine_tune
 from components.sign_in import validate_email,authenticate_user,add_user,perform_sign_in_or_up
-
 load_dotenv()
 st.markdown(
     """
@@ -31,14 +32,16 @@ st.markdown(
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 
-# MongoDB Configuration
 
 
 st.session_state.expander_open = False
 # Initialize session state
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
+    #this is to initialize, but within sign up it get filled in. for username, user type and student status.
     st.session_state.username = ""
+    st.session_state.user_type = ""
+    st.session_state.student_status = ""
     st.session_state.selected_completion = None
 if "auth_mode" not in st.session_state:
     st.session_state.auth_mode = "Sign In"
@@ -50,20 +53,53 @@ if "selected_bot" not in st.session_state:
 # App Structure
 st.title("Stars Tutoring Chatbot")
 
+
 if st.session_state.logged_in:
-    # Display a success message temporarily
-    # temp solution
-    placeholder = st.empty()  # Create a placeholder
-    placeholder.success(f"Welcome, {st.session_state.username}!")  # Show the success message
-    time.sleep(2)  # Wait for 2 seconds
-    placeholder.empty()  # Clear the message after 2 seconds
+    #Admin UI
+    if st.session_state.user_type =="admin":
+        admin_panel()
+    elif st.session_state.user_type=='tutor' or st.session_state.student_status=='approved':
+        # Display a success message temporarily
+        # temp solution
+        placeholder = st.empty()  # Create a placeholder
+        placeholder.success(f"Welcome, {st.session_state.username}!")  # Show the success message
+        time.sleep(2)  # Wait for 2 seconds
+        placeholder.empty()  # Clear the message after 2 seconds
+        
+        # st.success(f"Welcome, {st.session_state.username}!")
+        user_id = st.session_state.username
+
+    
+        user_doc = users_collection.find_one({"username": user_id})
+        # if user_doc[]
+        user_courses = user_doc.get("courses", [])
+        # Initialize Chatbot based on selection
+        
+        # chatbot.set_current_chat_id(user_id,'f9d77b5e-cc99-4ae4-a123-a8f5afeb03f3')
+
+        # Sidebar for bot selection
+
+        #why was below added?
+    #     with st.sidebar:
+            
+    #         chatbot = Chatbot(
+    #             api_key=st.secrets['OPENAI_API_KEY'],
+    #             mongo_uri=mongo_uri,
+    #             course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
+    #         )   
+    # # Display a success message temporarily
+    # # temp solution
+    # placeholder = st.empty()  # Create a placeholder
+    # placeholder.success(f"Welcome, {st.session_state.username}!")  # Show the success message
+    # time.sleep(2)  # Wait for 2 seconds
+    # placeholder.empty()  # Clear the message after 2 seconds
 
     
 
     with st.sidebar:
         chatbot = Chatbot(
             api_key=st.secrets['OPENAI_API_KEY'],
-            mongo_uri="mongodb://localhost:27017/",
+            mongo_uri=mongo_uri,
             course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
         )   
 
@@ -92,7 +128,7 @@ if st.session_state.logged_in:
             if bot_selection != st.session_state.selected_bot:
                 chatbot = Chatbot(
                     api_key=st.secrets['OPENAI_API_KEY'],
-                    mongo_uri="mongodb://localhost:27017/",
+                    mongo_uri=mongo_uri,
                     course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
         ) 
         
@@ -108,35 +144,35 @@ if st.session_state.logged_in:
             st.session_state.messages = chatbot.get_current_chat_history(user_id)
          
 
-        # Fetch Recent Assistant Chats
-        recent_chats = chatbot.get_recent_chats(user_id)
+            # Fetch Recent Assistant Chats
+            recent_chats = chatbot.get_recent_chats(user_id)
 
-        if recent_chats:
-            # Populate the selectbox with recent assistant messages
-            selected_chat_id = st.session_state.get("selected_chat_id")
+            if recent_chats:
+                # Populate the selectbox with recent assistant messages
+                selected_chat_id = st.session_state.get("selected_chat_id")
 
-            for chat in recent_chats:
-                chat_id = chat["chat_id"]
-                button_text = chat["content"][:50] + "..."
+                for chat in recent_chats:
+                    chat_id = chat["chat_id"]
+                    button_text = chat["content"][:50] + "..."
+                    
+                    if selected_chat_id == chat_id:
+                            button_text = f"🔵 {button_text}"
+
+                    if st.sidebar.button(button_text, key=chat_id, help="Click to open chat"):
+                        # Retrieve selected chat's history
+                        st.session_state.selected_chat_id = chat_id
+                        selected_chat_id = chat["chat_id"]
+                        chatbot.set_current_chat_id(user_id, selected_chat_id)
+                        st.session_state.messages = chatbot.get_current_chat_history(user_id)
+                        st.rerun()
                 
-                if selected_chat_id == chat_id:
-                        button_text = f"🔵 {button_text}"
+                
+            else:
+                st.sidebar.warning("No chats available to display.")
+                chatbot.start_new_chat(user_id)
+                st.session_state.messages = chatbot.get_current_chat_history(user_id)
 
-                if st.sidebar.button(button_text, key=chat_id, help="Click to open chat"):
-                    # Retrieve selected chat's history
-                    st.session_state.selected_chat_id = chat_id
-                    selected_chat_id = chat["chat_id"]
-                    chatbot.set_current_chat_id(user_id, selected_chat_id)
-                    st.session_state.messages = chatbot.get_current_chat_history(user_id)
-                    st.rerun()
-            
-            
-        else:
-            st.sidebar.warning("No chats available to display.")
-            chatbot.start_new_chat(user_id)
-            st.session_state.messages = chatbot.get_current_chat_history(user_id)
-
-        st.markdown("<br><br>", unsafe_allow_html=True)
+            st.markdown("<br><br>", unsafe_allow_html=True)
 
         col1,col_spacing ,col2 = st.columns([1,.5,1])
         with col1:
@@ -169,9 +205,18 @@ if st.session_state.logged_in:
         assistant_message = chatbot.generate_response(user_id,st.session_state.messages)
        
         st.chat_message("assistant").write(assistant_message)
-    st.button('Fine Tune',type='primary',on_click=fine_tune)
+    
+    if st.session_state.user_type =='tutor':
+        st.button('Fine Tune',type='primary',on_click=fine_tune)
     
     
-
+    elif st.session_state.student_status =='pending_courses':
+        pass
+    elif st.session_state.student_status =='pending_approval':
+        st.info('Your information is pending approval, please wait and you will be notified once approved.')
+    elif st.session_state.student_status =='rejected':
+        st.error('Your information has been rejected. Please contact adminstrator for more information ')
 else:
     perform_sign_in_or_up()
+
+

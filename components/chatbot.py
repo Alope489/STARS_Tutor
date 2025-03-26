@@ -16,6 +16,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 # Caching global
 lfu_cache = LFUCache(maxsize=32) # Least Freq Used
 
+
 class Chatbot:
     def __init__(self, api_key, mongo_uri, course_name): 
         self.client = OpenAI(api_key=api_key)

@@ -14,11 +14,16 @@ def validate_email(email):
     """Ensure the email ends with @fiu.edu."""
     return email.endswith("@fiu.edu")
 
-def add_user(username, email, password):
+def add_user(username, email, password,user_type):
     """Add a new user to the database."""
     if users_collection.find_one({"email": email}):
         return "Email already registered."
-    users_collection.insert_one({"username": username, "email": email, "password": password})
+    student_status = ""
+    if user_type=="student":
+        student_status="pending_courses"
+    else:
+        student_status =None
+    users_collection.insert_one({"username": username, "email": email, "password": password,"user_type":user_type,"student_status":student_status})
     logging.info(f"New user added: {username}, {email}")
     return "success"
 def authenticate_user(email, password):
@@ -38,6 +43,8 @@ def perform_sign_in_or_up():
             if user:
                 st.session_state.logged_in = True
                 st.session_state.username = user["username"]
+                st.session_state.user_type = user["user_type"]
+                st.session_state.student_status = user["student_status"] or None
                 st.success(f"Welcome back, {user['username']}!")
                 st.rerun()
             else:
@@ -57,7 +64,7 @@ def perform_sign_in_or_up():
             elif len(password) < 8:
                 st.error("Password must be at least 8 characters long.")
             else:
-                result = add_user(username, email, password)
+                result = add_user(username, email, password,"student")
                 if result == "success":
                     st.success("Account created successfully! Please log in.")
                     st.session_state.auth_mode = "Sign In"
