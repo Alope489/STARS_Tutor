@@ -1,6 +1,7 @@
 from pymongo import MongoClient
 import streamlit as st
 import logging
+from components.course_upload import course_upload
 
 client = MongoClient("mongodb://localhost:27017/")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
@@ -58,6 +59,7 @@ def perform_sign_in_or_up():
         username = st.text_input("Username")
         email = st.text_input("FIU Email Address")
         password = st.text_input("Password", type="password")
+        course_upload()
         if st.button("Sign Up"):
             if not validate_email(email):
                 st.error("Please use a valid FIU email address.")

@@ -73,27 +73,6 @@ if st.session_state.logged_in:
         user_doc = users_collection.find_one({"username": user_id})
         # if user_doc[]
         user_courses = user_doc.get("courses", [])
-        # Initialize Chatbot based on selection
-        
-        # chatbot.set_current_chat_id(user_id,'f9d77b5e-cc99-4ae4-a123-a8f5afeb03f3')
-
-        # Sidebar for bot selection
-
-        #why was below added?
-    #     with st.sidebar:
-            
-    #         chatbot = Chatbot(
-    #             api_key=st.secrets['OPENAI_API_KEY'],
-    #             mongo_uri=mongo_uri,
-    #             course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
-    #         )   
-    # # Display a success message temporarily
-    # # temp solution
-    # placeholder = st.empty()  # Create a placeholder
-    # placeholder.success(f"Welcome, {st.session_state.username}!")  # Show the success message
-    # time.sleep(2)  # Wait for 2 seconds
-    # placeholder.empty()  # Clear the message after 2 seconds
-
     
 
     with st.sidebar:
@@ -125,12 +104,12 @@ if st.session_state.logged_in:
 
             
             # Initialize chatbot with the selected bot
-            if bot_selection != st.session_state.selected_bot:
-                chatbot = Chatbot(
-                    api_key=st.secrets['OPENAI_API_KEY'],
-                    mongo_uri=mongo_uri,
-                    course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
-        ) 
+        #     if bot_selection != st.session_state.selected_bot:
+        #         chatbot = Chatbot(
+        #             api_key=st.secrets['OPENAI_API_KEY'],
+        #             mongo_uri=mongo_uri,
+        #             course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
+        # ) 
         
         
 
