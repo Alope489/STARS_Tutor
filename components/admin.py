@@ -38,6 +38,12 @@ def removeClassModal():
 def get_courses():
     courses = list(course_collection.find({}))
     return courses
+def parse_courses(courses):
+    #this is to be used in course upload, receving a course array, need to filter out those inside the course collection
+    tutored_courses = course_collection.find({
+        'course_id' : {"$in":courses}
+    })
+    return list(tutored_courses)
 
 @st.dialog("Add new classes")
 def addclassModal():

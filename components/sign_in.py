@@ -10,21 +10,19 @@ db = client["user_data"]
 users_collection = db["users"]
 archive = client["chat_app"]
 chats_collection = archive["chats"]
+if 'courses_valid' not in st.session_state: 
+    st.session_state.courses_valid = False
 
 def validate_email(email):
     """Ensure the email ends with @fiu.edu."""
     return email.endswith("@fiu.edu")
 
-def add_user(username, email, password,user_type):
+def add_user(username, email, password,user_type,panther_id,courses):
     """Add a new user to the database."""
     if users_collection.find_one({"email": email}):
         return "Email already registered."
-    student_status = ""
-    if user_type=="student":
-        student_status="pending_courses"
-    else:
-        student_status =None
-    users_collection.insert_one({"username": username, "email": email, "password": password,"user_type":user_type,"student_status":student_status})
+    #new users have had their course info approved, therefore their status is immediately pending approval
+    users_collection.insert_one({"username": username, "email": email, "password": password,"panther_id":panther_id,"user_type":user_type,"status":"pending_approval","courses":courses})
     logging.info(f"New user added: {username}, {email}")
     return "success"
 def authenticate_user(email, password):
@@ -58,15 +56,18 @@ def perform_sign_in_or_up():
         st.subheader("Sign Up")
         username = st.text_input("Username")
         email = st.text_input("FIU Email Address")
+        panther_id = st.text_input('Panther ID')
         password = st.text_input("Password", type="password")
-        course_upload()
+        courses = course_upload()
         if st.button("Sign Up"):
             if not validate_email(email):
                 st.error("Please use a valid FIU email address.")
-            elif len(password) < 8:
+            elif len(password) < 8 :
                 st.error("Password must be at least 8 characters long.")
-            else:
-                result = add_user(username, email, password,"student")
+            elif len(panther_id)!=7 or not  panther_id.isdigit():
+                st.error('Please fill in your panther id correctly.')
+            elif st.session_state.courses_valid:
+                result = add_user(username, email, password,"student",panther_id,courses)
                 if result == "success":
                     st.success("Account created successfully! Please log in.")
                     st.session_state.auth_mode = "Sign In"

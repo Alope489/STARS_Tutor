@@ -2,24 +2,39 @@ import streamlit as st
 from pypdf import PdfReader
 import re 
 import json
+from components.admin import parse_courses
 
+if 'courses_valid' not in st.session_state: 
+    st.session_state.courses_valid = False
 def course_upload():
     st.write('Provide PDF of your current courses. This will be found under MyFIU, Manage Classes, View Class Schedule. Then, Click where it says Print Schedule and Download the File.')
     st.image('components\images\FIU Schedule.png')
+    #first check, is to ensure its a pdf
     try:
         file = st.file_uploader("Choose a file")
         if file:
             reader = PdfReader(file)
             last_page  = reader.pages[-1]
             text = last_page.extract_text()
-            #text should contain : 'Schedule of Classes', else provide an error message
+            # seconc check text should contain : 'Schedule of Classes', else provide an error message
             if 'Schedule of Classes' in text:
-                course_data = text.split('Units')
-                courses = [course_str.split('\n')[-1] for course_str in course_data][:-1]
-                #student should be taking at least 1 course, else provide error message
+                pattern = r'[A-Z]{3}-\d{4}'
+                courses = re.findall(pattern,text)
+                # third check student should be taking at least 1 course, else provide error message
                 if courses:
-                    # st.write(courses)
-                    pass
+                   #fourth check student courses need to be inside courses database.
+                   tutored_courses = parse_courses(courses)
+                   #use this to test
+                #  tutored_courses =  ['CAP-2752']
+                   if tutored_courses:
+                       
+                       st.session_state.courses_valid = True
+                       st.info(f'These are the courses we are currently tutoring and have bots available for: {tutored_courses}')
+                       return tutored_courses
+                   else:
+                       st.error('We are not offering tutoring for these courses and do not have bots available')
+                       
+                    
                 else:
                     st.error('You must be enrolled in at least 1 course to access our service.')
                 
