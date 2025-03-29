@@ -33,6 +33,7 @@ def authenticate_user(email, password):
     return user
 
 def perform_sign_in_or_up():
+     st.title("Stars Tutoring Chatbot")
      if st.session_state.auth_mode == "Sign In":
         st.subheader("Sign In")
         email = st.text_input("FIU Email Address")
@@ -45,6 +46,7 @@ def perform_sign_in_or_up():
                 st.session_state.user_type = user["user_type"]
                 st.session_state.student_status = user["student_status"] or None
                 st.success(f"Welcome back, {user['username']}!")
+                return user['user_type']
                 st.rerun()
             else:
                 st.error("Invalid email or password.")

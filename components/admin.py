@@ -45,6 +45,36 @@ def parse_courses(courses):
     })
     return list(tutored_courses)
 
+def get_pending_students():
+    students = list(users_collection.find({"student_status": "pending"}))
+    return students
+
+@st.dialog("Approve Student")
+def approveStudent(student):
+    st.title(f"Are you sure you want to approve {student}?")
+    if st.button("Approve"):
+        users_collection.update_one(
+            {"username": student},
+            {"$set": {"student_status": "approved"}}
+        )
+        st.rerun()
+    elif st.button("Cancel"):
+        st.rerun()
+
+@st.dialog("Reject Student")
+def rejectStudent(student):
+    st.title(f"Are you sure you want to reject {student}?")
+    if st.button("Reject"):
+        users_collection.update_one(
+            {"username": student},
+            {"$set": {"student_status": "rejected"}}
+        )
+        st.rerun()
+    elif st.button("Cancel"):
+        st.rerun()
+
+
+
 @st.dialog("Add new classes")
 def addclassModal():
     st.write('Add new classes')
@@ -60,19 +90,60 @@ def addclassModal():
             st.rerun()
 
 def admin_panel():
-    st.title("Welcome to the admin dashboard")
-    st.write("Admin dashboard to add or remove courses")
-    courses = get_courses()
-    if not courses:
-        st.write("no courses found")
-    else:
-        st.write("some courses:")
-        df = pd.DataFrame(courses, columns=['course_name', 'course_code', 'course_id'])
+    if "admin_page" not in st.session_state:
+        st.session_state.admin_page = "courses"
+       
+    with st.sidebar:
+        st.title("Admin Panel")
+        if st.sidebar.button("Course Settings"):
+            st.session_state.admin_page ="courses"
+            st.rerun()
+        if st.sidebar.button("Student Approval"):
+            st.session_state.admin_page ="student_approval"
+            st.rerun()
+    #The "pages"
+    if st.session_state.admin_page =="courses":
+        st.title("Welcome to the admin dashboard")
+        st.write("Admin dashboard to add or remove courses")
+        courses = get_courses()
+        if not courses:
+            st.write("no courses found")
+        else:
+            st.write("some courses:")
+            df = pd.DataFrame(courses, columns=['course_name', 'course_code', 'course_id'])
+            st.table(df)
+            if st.button("Add new course"):
+                addclassModal()
+            if st.button("Remove course"):
+                removeClassModal()
 
+    elif st.session_state.admin_page =="student_approval":
+        st.title("Student Approval")
 
-        st.table(df)
-        
-        if st.button("Add new course"):
-            addclassModal()
-        if st.button("Remove course"):
-            removeClassModal()
+        data = get_pending_students()
+
+        df = pd.DataFrame(data)
+
+        st.write("Students Pending Approval")
+
+            # Create table headers
+        cols = st.columns([3, 3, 2, 2, 1])  # Adjust column widths
+        cols[0].write("username")
+        cols[1].write("email")
+
+            # Loop through rows
+        for index, row in df.iterrows():
+            cols = st.columns([3, 3, 2, 2, 2])  
+            cols[0].write(row["username"])
+            cols[1].write(row["email"])
+                
+                
+                # Add a button for each row
+            if cols[3].button(f"Remove", key=f"remove_{row['username']}"):
+                st.warning(f"Student {row['email']} removed!") 
+                rejectStudent(row['username'])
+                    # st.rerun()
+            if cols[4].button(f"Approve", key=f"approve_{row['username']}"):
+                st.success(f"Student {row['username']} Approved!")
+                approveStudent(row['username'])
+                    # st.rerun()
