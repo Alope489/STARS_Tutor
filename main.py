@@ -69,38 +69,6 @@ if st.session_state.logged_in:
         placeholder.success(f"Welcome, {st.session_state.username}!")  # Show the success message
         time.sleep(2)  # Wait for 2 seconds
         placeholder.empty()  # Clear the message after 2 seconds
-        
-        def generate_chats(chatbot, user_id):
-                recent_chats = chatbot.get_recent_chats(user_id)
-
-                if recent_chats:
-                    # Populate the selectbox with recent assistant messages
-                    def select_chat(chat_id):
-                        st.session_state.selected_chat_id = chat_id
-                        chatbot.set_current_chat_id(user_id, chat_id)
-                        st.session_state.messages = chatbot.get_current_chat_history(user_id)
-                    
-
-                    for chat in recent_chats:
-                        chat_id = chat["chat_id"]
-                        button_text = chat["content"][:50] + "..."
-                        
-                        if st.session_state.get("selected_chat_id") == chat_id:
-                                button_text = f"🔵 {button_text}"
-
-                        st.sidebar.button(
-                            button_text, 
-                            key=chat_id, 
-                            help="Click to open chat",
-                            on_click=select_chat,
-                            args=(chat_id,))
-                            
-                else:
-                    st.sidebar.warning("No chats available to display.")
-                    chatbot.start_new_chat(user_id)
-                    st.session_state.messages = chatbot.get_current_chat_history(user_id)
-
-        
 
         with st.sidebar:
             chatbot = Chatbot(
@@ -140,7 +108,7 @@ if st.session_state.logged_in:
             
             
             st.title(f"{st.session_state.selected_bot.capitalize()} Chat History")
-            generate_chats(chatbot, user_id)
+            chatbot.generate_chats(user_id)
             
         
             st.markdown("<br><br>", unsafe_allow_html=True)
