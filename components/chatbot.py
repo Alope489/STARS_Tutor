@@ -20,6 +20,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 # Caching global
 lfu_cache = LFUCache(maxsize=32) # Least Freq Used
 
+
 class StreamlitCallbackHandler(BaseCallbackHandler):
     def __init__(self, container):
         self.container = container
