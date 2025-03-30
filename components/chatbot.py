@@ -9,6 +9,10 @@ from cachetools import cached, LFUCache, TTLCache
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
+from langchain.callbacks.base import BaseCallbackHandler
+import re
+
+
 
 # Chatbot Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -16,6 +20,31 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 # Caching global
 lfu_cache = LFUCache(maxsize=32) # Least Freq Used
 
+
+class StreamlitCallbackHandler(BaseCallbackHandler):
+    def __init__(self, container):
+        self.container = container
+        self.text = ""
+
+    def on_llm_new_token(self, token: str, **kwargs):
+        self.text += token
+        self.container.markdown(self.text + "▌")  # optional typing effect
+
+    def get_response(self):
+        return self.text.strip()
+    
+def format_latex_blocks(text):
+        """
+        Detects LaTeX math inside the chat responses [ ... ] and converts to $$ ... $$ for Streamlit rendering.
+        """
+        text = re.sub(r'\\text\{(.*?)\}', r'\\mathrm{\1}', text)
+        text = re.sub(r'\\\((.*?)\\\)', r'$\1$', text)  # Handle \( ... \) → $...$ 
+        text = re.sub(r'\\\[(.*?)\\\]', r'$$\1$$', text) # Handle \[ ... \] → $$...$$
+        text = re.sub(r'\[\s*(.*?)\s*\]', r'$$\1$$', text) # [ ... ] → $$ ... $$ 
+
+        # Ensure math blocks are surrounded by newlines so Streamlit renders them properly
+        text = re.sub(r'\$\$(.*?)\$\$', r'\n\n$$\1$$\n\n', text, flags=re.DOTALL) 
+        return text
 
 class Chatbot:
     def __init__(self, api_key, mongo_uri, course_name): 
@@ -30,7 +59,7 @@ class Chatbot:
         self.prompt = ChatChainSingleton().prompt
 
     def generate_chat_summary(self,chat_history):
-        """
+        """start_new_chat
         Generate a summary of the chat using LangChain.
         """
         prompt_template = """
@@ -43,7 +72,7 @@ class Chatbot:
 
         llm = ChatOpenAI(
             temperature = 0,
-            model_name="gpt-3.5-turbo",
+            model_name="gpt-3.5-turbo-0125",
             api_key=st.secrets['OPENAI_API_KEY']
         )
 
@@ -131,7 +160,6 @@ class Chatbot:
 
         #in front end, it is added to the session state automatically
         logging.info('Added message successfully')
-        st.rerun() 
         return 'added successfully'
     
     def get_all_chat_ids(self,user_id):
@@ -224,11 +252,31 @@ class Chatbot:
                     "$set": {f"current_chat_id_{self.bot_type}": None}  # Reset the current chat ID
                     }
                 )
-            # Clear session state messages
-        st.session_state.messages = []
+        
+        
         self.set_current_chat_id(user_id,'deleted')
         logging.info(f"Chat with ID {current_chat_id} deleted successfully.")
-        st.success("Chat deleted successfully!")
+
+        recent_chats = self.get_recent_chats(user_id)
+
+        new_chat_id = next((chat["chat_id"] for chat in recent_chats if chat["chat_id"] != current_chat_id), None)
+
+
+        # Notify user
+        if new_chat_id:
+            self.set_current_chat_id(user_id, new_chat_id)
+            st.session_state.selected_chat_id = new_chat_id
+            st.session_state.messages = self.get_current_chat_history(user_id)
+            st.success("Chat deleted successfully! Switched to the most recent chat.")
+        else:
+            self.set_current_chat_id(user_id, None)
+            st.session_state.selected_chat_id = None
+            st.session_state.messages = []
+            st.warning("Chat deleted. No chats available.")
+
+        st.rerun()
+
+        
 
     def generate_response(self, user_id, messages):
         try:
@@ -243,19 +291,30 @@ class Chatbot:
                 ],
             }
 
-            formatted_prompt = self.prompt.format_prompt(**prompt_values)
-            response = self.chain.invoke(prompt_values)
-            assistant_message = response.content
-            
-            # Clear cache before updating to db
-            self.get_recent_chats.cache_clear()
+            with st.chat_message("assistant"):
+                container = st.empty()
+                stream_handler = StreamlitCallbackHandler(container)
+
+                llm = ChatOpenAI(
+                    temperature=0.5,
+                    model_name="gpt-3.5-turbo-0125",
+                    streaming=True,
+                    api_key=st.secrets['OPENAI_API_KEY'],
+                    callbacks=[stream_handler]
+                )
+
+                chain = LLMChain(llm=llm, prompt=self.prompt)
+                chain.invoke(prompt_values)
+
+                assistant_message = stream_handler.get_response()
+                assistant_message = format_latex_blocks(assistant_message)
 
             #add to DB
             new_messages = [{'role':'user','content':user_message},{'role':'assistant','content':assistant_message}]
             self.add_messages_to_chat_history(user_id,new_messages)
 
             # Re-fetch and store in cache
-            self.get_recent_chats(user_id, f"{self.bot_type}_chat_histories")
+            self.get_recent_chats(user_id)
 
             logging.info("Response generated.")
             return assistant_message
