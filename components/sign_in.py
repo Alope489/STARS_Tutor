@@ -10,6 +10,7 @@ db = client["user_data"]
 users_collection = db["users"]
 archive = client["chat_app"]
 chats_collection = archive["chats"]
+
 if 'courses_valid' not in st.session_state: 
     st.session_state.courses_valid = False
 
@@ -64,6 +65,8 @@ def perform_sign_in_or_up():
                 st.error("Please use a valid FIU email address.")
             elif len(password) < 8 :
                 st.error("Password must be at least 8 characters long.")
+            elif len(username) < 5:
+                st.error('Username must be at least 5 characters long.')
             elif len(panther_id)!=7 or not  panther_id.isdigit():
                 st.error('Please fill in your panther id correctly.')
             elif st.session_state.courses_valid:

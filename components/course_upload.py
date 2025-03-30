@@ -25,11 +25,11 @@ def course_upload():
                    #fourth check student courses need to be inside courses database.
                    tutored_courses = parse_courses(courses)
                    #use this to test
-                #  tutored_courses =  ['CAP-2752']
+                #    tutored_courses =  ['CAP-2752','ABC-123','DEF-456']
                    if tutored_courses:
                        
                        st.session_state.courses_valid = True
-                       st.info(f'These are the courses we are currently tutoring and have bots available for: {tutored_courses}')
+                       st.info(f'These are the courses we are currently tutoring:  \n\n {" | ".join(tutored_courses)}')
                        return tutored_courses
                    else:
                        st.error('We are not offering tutoring for these courses and do not have bots available')

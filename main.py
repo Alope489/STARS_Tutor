@@ -53,8 +53,9 @@ if "selected_bot" not in st.session_state:
 if "show_fine_tune" not in st.session_state:
     st.session_state.show_fine_tune = False
 
-# App Structure
-st.title("Stars Tutoring Chatbot")
+# App Structure, don't display in admin panel
+if not st.session_state.user_type=='admin':
+    st.title("Stars Tutoring Chatbot")
 
 
 if st.session_state.logged_in:
@@ -160,31 +161,31 @@ if st.session_state.logged_in:
                 
         # Display chat history for the selected bot
         
-    for message in st.session_state.messages:
-        st.chat_message(message["role"]).write(message["content"])
+        for message in st.session_state.messages:
+            st.chat_message(message["role"]).write(message["content"])
 
-    # User Input
-    user_input = st.chat_input("Type your message here...")
-    if user_input:
-        st.session_state.messages.append({"role": "user", "content": user_input})
-       
-        st.chat_message("user").write(user_input)
-       
-        # Generate and display response
-        with st.spinner("Writing..."):
-            assistant_message = chatbot.generate_response(user_id,st.session_state.messages)
-
+        # User Input
+        user_input = st.chat_input("Type your message here...")
+        if user_input:
+            st.session_state.messages.append({"role": "user", "content": user_input})
         
-    if len(st.session_state.messages) > 1:
-        if st.button("Fine Tune"):
-            fine_tune()
+            st.chat_message("user").write(user_input)
+        
+            # Generate and display response
+            with st.spinner("Writing..."):
+                assistant_message = chatbot.generate_response(user_id,st.session_state.messages)
+
+            
+        if  st.session_state.user_type == "tutor" and len(st.session_state.messages) > 1:
+            if st.button("Fine Tune"):
+                fine_tune()
     
     elif st.session_state.student_status =='pending_courses':
         pass
     elif st.session_state.student_status =='pending_approval':
         st.info('Your information is pending approval, please wait and you will be notified once approved.')
     elif st.session_state.student_status =='rejected':
-        st.error('Your information has been rejected. Please contact adminstrator for more information ')
+        st.error('Your information has been rejected. Please contact adminstrator for more information: arehman@fiu.edu')
 else:
     perform_sign_in_or_up()
 
