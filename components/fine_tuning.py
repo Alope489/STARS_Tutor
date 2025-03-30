@@ -18,7 +18,7 @@ db = client["user_data"]
 users_collection = db["users"]
 archive = client["chat_app"]
 chats_collection = archive["chats"]
-groq_client = Groq(api_key=os.getenv('GROQ_API_KEY'))
+groq_client = Groq(api_key=st.secrets['GROQ_API_KEY'])
 openai_client = OpenAI(api_key=st.secrets['OPENAI_API_KEY'])
 
 def upload_training_file():
