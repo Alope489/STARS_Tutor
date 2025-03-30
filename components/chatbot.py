@@ -277,6 +277,35 @@ class Chatbot:
         st.rerun()
 
         
+    def generate_chats(self,user_id):
+                recent_chats = self.get_recent_chats(user_id)
+
+                if recent_chats:
+                    # Populate the selectbox with recent assistant messages
+                    def select_chat(chat_id):
+                        st.session_state.selected_chat_id = chat_id
+                        self.set_current_chat_id(user_id, chat_id)
+                        st.session_state.messages = self.get_current_chat_history(user_id)
+                    
+
+                    for chat in recent_chats:
+                        chat_id = chat["chat_id"]
+                        button_text = chat["content"][:50] + "..."
+                        
+                        if st.session_state.get("selected_chat_id") == chat_id:
+                                button_text = f"🔵 {button_text}"
+
+                        st.sidebar.button(
+                            button_text, 
+                            key=chat_id, 
+                            help="Click to open chat",
+                            on_click=select_chat,
+                            args=(chat_id,))
+                            
+                else:
+                    st.sidebar.warning("No chats available to display.")
+                    self.start_new_chat(user_id)
+                    st.session_state.messages = self.get_current_chat_history(user_id)
 
     def generate_response(self, user_id, messages):
         try:
