@@ -5,7 +5,7 @@ from pymongo import MongoClient
 import logging
 import pandas as pd
 from components.chatbot import Chatbot
-from components.admin import mongo_uri,client,coursedb,users_collection,admin_panel,get_course_names,add_courses_to_student
+from components.admin import admin_panel
 from dotenv import load_dotenv
 from datetime import datetime
 import uuid
@@ -15,7 +15,7 @@ import csv
 import jsonlines
 from components.fine_tuning import perform_fine_tuning,set_current_completion,add_examples,add_completions,fine_tune
 from components.sign_in import validate_email,authenticate_user,add_user,perform_sign_in_or_up
-from components.course_upload import course_upload
+from components.courses import course_upload,get_course_names,add_courses_to_student,mongo_uri,client,coursedb,users_collection
 load_dotenv()
 st.markdown(
     """
@@ -58,7 +58,6 @@ if "show_fine_tune" not in st.session_state:
 if not st.session_state.user_type=='admin':
     st.title("Stars Tutoring Chatbot")
 
-
 if st.session_state.logged_in:
     #Admin UI
     if st.session_state.user_type =="admin":
@@ -79,7 +78,7 @@ if st.session_state.logged_in:
             course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
         )   
             user_id = st.session_state.panther_id
-            user_courses = set(chatbot.get_courses(user_id))
+            user_courses = chatbot.get_courses(user_id)
             course_names = ['tutorbot','codebot'] + get_course_names(user_courses)
             chat_id = chatbot.get_current_chat_id(user_id)
             chat_history = chatbot.get_current_chat_history(user_id) if chat_id != 'deleted' else []
@@ -145,7 +144,10 @@ if st.session_state.logged_in:
             with st.spinner("Writing..."):
                 assistant_message = chatbot.generate_response(user_id,st.session_state.messages)
 
-            
+        #only avaialble if tutor, 1 chatbot completion available and test completions ready
+        #TODO move examples and completions to DB then perform this additional check.
+        #TODO meet with andres to ensure fine tuning can be done on 1 model, then create additional fine tuned models
+        #TODO when fine tuning and pulling completions from db they would need to write to a jsonl file.
         if  st.session_state.user_type == "tutor" and len(st.session_state.messages) > 1:
             if st.button("Fine Tune"):
                 fine_tune()

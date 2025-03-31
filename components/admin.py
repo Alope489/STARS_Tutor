@@ -1,14 +1,6 @@
 import streamlit as st
-from pymongo import MongoClient
 import pandas as pd
-
-mongo_uri = "mongodb://localhost:27017/"
-client = MongoClient(mongo_uri)
-coursedb = client['courses']
-course_collection = coursedb['course_list']
-
-db = client["user_data"]
-users_collection = db["users"]
+from components.courses import course_collection,users_collection,get_pending_students,get_enrolled_students,get_courses
 
 
 @st.dialog("Remove a course")
@@ -23,34 +15,7 @@ def removeClassModal():
             st.success(f"Class {course_id} removed successfully!")
             st.rerun()
 
-def get_courses():
-    courses = list(course_collection.find({}))
-    return courses
-def get_course_names(course_ids):
-    courses = list(course_collection.find({"course_id":{"$in":course_ids}},{"course_name":1,"_id":0}))
-    course_names = [course['course_name']for course in courses]
-    return course_names
-def add_courses_to_student(panther_id,course_ids):
-    users_collection.update_one({"panther_id":panther_id}, #query
-                                {"$push":{"courses":{"$each":course_ids}},
-                                 "$set":{"status":"pending_approval"}
-                                 }, #update
-                                )
-    st.success('Course information successfully uploaded')
-    st.session_state.status='pending_approval'
-def get_enrolled_students():
-    students = list(users_collection.find({"status":"approved"}))
-    return students
-def parse_courses(courses):
-    #this is to be used in course upload, receving a course array, need to filter out those inside the course collection
-    tutored_courses = course_collection.find({
-        'course_id' : {"$in":courses}
-    })
-    return list(tutored_courses)
 
-def get_pending_students():
-    students = list(users_collection.find({"status": "pending_approval"}))
-    return students
 
 @st.dialog("Approve Student")
 def approveStudent(email):

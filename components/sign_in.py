@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 import streamlit as st
 import logging
-from components.course_upload import course_upload
+from components.courses import course_upload
 
 client = MongoClient("mongodb://localhost:27017/")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
@@ -43,9 +43,12 @@ def perform_sign_in_or_up():
             if user:
                 st.session_state.logged_in = True
                 st.session_state.fname = user['fname']
-                st.session_state.panther_id = user['panther_id']
                 st.session_state.user_type = user["user_type"]
-                st.session_state.status = user["status"] or None
+                #only for students/ tutors
+                if 'panther_id' in user:
+                    st.session_state.panther_id = user['panther_id']
+                if 'status' in user:
+                    st.session_state.status =user['status']
                 st.success(f"Welcome back, {user['fname']}!")
                 st.rerun()
             else:
