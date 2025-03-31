@@ -32,44 +32,45 @@ class ChatChainSingleton:
 
     @classmethod
     def initialize_chain(cls, model: str = "gpt-4o") -> Any:
-        logging.info("Initializing ChatChain.")    
-        with jsonlines.open(f'components/examples/{st.session_state.selected_bot}.jsonl') as jsonl_f:
-            examples = [obj for obj in jsonl_f]
-            
-        try:
-            embeddings = OpenAIEmbeddings(api_key=st.secrets['OPENAI_API_KEY'] )
-            to_vectorize = ['.'.join(example.values()) for example in examples]
-            vectorstore = Chroma.from_texts(to_vectorize, embeddings, metadatas=examples, persist_directory= r"Documents")
-            logging.info("Chroma initialized.")
-        except Exception as e:
-            logging.error(f"Chroma initialization failed: {e}")
-            return None
+        logging.info("Initializing ChatChain.")
+        #initial case, in case courses do not have any examples.
+        few_shot_prompt = None   
+        file =  f'components/examples/{st.session_state.selected_bot}.jsonl'
+        if os.path.exists(file):
+            #examples may not exist
+            with jsonlines.open(f'components/examples/{st.session_state.selected_bot}.jsonl') as jsonl_f:
+                examples = [obj for obj in jsonl_f]
+                
+            try:
+                embeddings = OpenAIEmbeddings(api_key=st.secrets['OPENAI_API_KEY'] )
+                to_vectorize = ['.'.join(example.values()) for example in examples]
+                vectorstore = Chroma.from_texts(to_vectorize, embeddings, metadatas=examples, persist_directory= r"Documents")
+                logging.info("Chroma initialized.")
+            except Exception as e:
+                logging.error(f"Chroma initialization failed: {e}")
+                return None
 
-        example_selector = LoggingSemanticSimilarityExampleSelector(vectorstore=vectorstore, k=2)
+            example_selector = LoggingSemanticSimilarityExampleSelector(vectorstore=vectorstore, k=2)
 
-        few_shot_prompt = FewShotChatMessagePromptTemplate(
-            input_variables=["input"],
-            example_selector=example_selector,
-            example_prompt=ChatPromptTemplate.from_messages(
-                [("human", "{input}"), ("ai", "{output}")]
-            ),
-        )
+            few_shot_prompt = FewShotChatMessagePromptTemplate(
+                input_variables=["input"],
+                example_selector=example_selector,
+                example_prompt=ChatPromptTemplate.from_messages(
+                    [("human", "{input}"), ("ai", "{output}")]
+                ),
+            )
 
         #Assemble the final prompt template
         system_prompt = system_prompts[st.session_state.selected_bot]
-        final_prompt = ChatPromptTemplate.from_messages(
-            [
-                (
-                    "system",
-                    (
-                       system_prompt
-                    ),
-                ),
-                few_shot_prompt.format(),
-                MessagesPlaceholder(variable_name="history"),
+        prompt_messages = [("system", ( system_prompt ))]
+        if few_shot_prompt:
+            prompt_messages.append(few_shot_prompt.format())
+        
+        prompt_messages.extend([
+             MessagesPlaceholder(variable_name="history"),
                 ("human", "{input}"),
-            ]
-        )
+        ])
+        final_prompt = ChatPromptTemplate.from_messages(prompt_messages)
 
         chat_model = ChatOpenAI(
             model=model,
