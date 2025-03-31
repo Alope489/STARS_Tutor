@@ -26,6 +26,18 @@ def removeClassModal():
 def get_courses():
     courses = list(course_collection.find({}))
     return courses
+def get_course_names(course_ids):
+    courses = list(course_collection.find({"course_id":{"$in":course_ids}},{"course_name":1,"_id":0}))
+    course_names = [course['course_name']for course in courses]
+    return course_names
+def add_courses_to_student(panther_id,course_ids):
+    users_collection.update_one({"panther_id":panther_id}, #query
+                                {"$push":{"courses":{"$each":course_ids}},
+                                 "$set":{"status":"pending_approval"}
+                                 }, #update
+                                )
+    st.success('Course information successfully uploaded')
+    st.session_state.status='pending_approval'
 def get_enrolled_students():
     students = list(users_collection.find({"status":"approved"}))
     return students

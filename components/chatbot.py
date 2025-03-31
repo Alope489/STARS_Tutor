@@ -88,20 +88,20 @@ class Chatbot:
 
     def set_current_chat_id(self,user_id,chat_id):
         #coderbot not codebot!
-        self.users_collection.update_one({"username":user_id},
+        self.users_collection.update_one({'panther_id':user_id},
                                          {"$set":{f'current_chat_id_{self.bot_type}':chat_id}}
                                          )
         return chat_id
         
     def get_current_chat_id(self,user_id):
         #get currently selected chat from user, if none then generate one.
-        user_doc = self.users_collection.find_one({'username':user_id})
+        user_doc = self.users_collection.find_one({'panther_id':user_id})
         chat_id = user_doc.get(f'current_chat_id_{self.bot_type}')
         #if not found, create one.
         if not chat_id:
             new_chat_id = str(uuid.uuid4())
             chat_id = new_chat_id
-            self.users_collection.update_one({"username":user_id},
+            self.users_collection.update_one({'panther_id':user_id},
                                                  {"$set":{f'current_chat_id_{self.bot_type}':new_chat_id}}
                                                  )
         return chat_id
@@ -110,12 +110,12 @@ class Chatbot:
         chat_id = self.get_current_chat_id(user_id)
         #when deleting a chat chat_id is not initially known until the selectbox refreshes.
         if chat_id:
-            user_doc = self.users_collection.find_one({'username':user_id})
+            user_doc = self.users_collection.find_one({'panther_id':user_id})
             chat_histories = user_doc.get(f'{self.bot_type}_chat_histories')
             if not chat_histories:
                 #create one and return original assistant prompt
                 original_message = {"role": "assistant","content":f"Hi! I am a {self.bot_type} fined tuned bot, I will help you with any question regarding this domain!"}
-                self.users_collection.update_one({"username":user_id},
+                self.users_collection.update_one({"panther_id":user_id},
                                                 {"$set":{f"{self.bot_type}_chat_histories":{chat_id:{'timestamp':datetime.now().timestamp(),'chat_history': [original_message]}}}}
                                                 )
                 return [original_message]
@@ -123,20 +123,20 @@ class Chatbot:
             return current_chat
         return None
     def get_courses(self,user_id):
-        user_doc = user_doc = self.users_collection.find_one({'username':user_id})
+        user_doc = user_doc = self.users_collection.find_one({'panther_id':user_id})
         user_courses = user_doc.get("courses", [])
         return user_courses
-    
     def add_messages_to_chat_history(self,user_id,new_messages):
         chat_id = self.get_current_chat_id(user_id)
         chat_history_path = f'{self.bot_type}_chat_histories.{chat_id}.chat_history'
         chat_timestamp_path = f'{self.bot_type}_chat_histories.{chat_id}.timestamp'
         summary_path = f'{self.bot_type}_chat_histories.{chat_id}.summary'
         
-        self.users_collection.update_one({'username':user_id},
+        self.users_collection.update_one({'panther_id':user_id},
                                          {'$push':{chat_history_path:{"$each":new_messages}}, #push is to push values into an existing object. Each is for pushing multiple values into that object
                                           '$set':{chat_timestamp_path: datetime.now().timestamp()}} # set is to update a specfic field in a object.
                                         ) 
+    
         
         # Get chat out of cache if chat is updated
         if chat_id in lfu_cache:
@@ -144,12 +144,12 @@ class Chatbot:
 
 
         
-        user_doc = self.users_collection.find_one({'username': user_id})
+        user_doc = self.users_collection.find_one({'panther_id': user_id})
         chat_history = user_doc[f'{self.bot_type}_chat_histories'][chat_id]['chat_history']
 
         summary = self.generate_chat_summary(chat_history)
         self.users_collection.update_one(
-            {'username': user_id},
+            {'panther_id': user_id},
             {'$set': {summary_path: summary}}
     )
 
@@ -162,12 +162,12 @@ class Chatbot:
         logging.info('Added message successfully')
         return 'added successfully'
     
-    def get_all_chat_ids(self,user_id):
-        user_doc = self.users_collection.find_one({'username':user_id})
-        chat_histories_object = user_doc.get(f'{self.bot_type}_chat_histories')
-        chat_ids = chat_histories_object.keys()
-        self.update_chat_summary(user_id, chat_id, chat_history)
-        return list(chat_ids)
+    # def get_all_chat_ids(self,user_id):
+    #     user_doc = self.users_collection.find_one({'panther_id':user_id})
+    #     chat_histories_object = user_doc.get(f'{self.bot_type}_chat_histories')
+    #     chat_ids = chat_histories_object.keys()
+    #     self.update_chat_summary(user_id, chat_id, chat_history)
+    #     return list(chat_ids)
     
     def start_new_chat(self,user_id): 
             #This creates a new id for the code
@@ -176,7 +176,7 @@ class Chatbot:
 
         # Add the new chat to the database and set it as the current chat
             result = self.users_collection.update_one(
-            {"username": user_id},
+            {'panther_id': user_id},
             {
                 "$set": {
                     f"{self.bot_type}_chat_histories.{new_chat_id}": {
@@ -200,7 +200,7 @@ class Chatbot:
         """
         Fetch recent assistant messages for the selected bot's chat history.
         """
-        user_data = self.users_collection.find_one({"username": user_id})
+        user_data = self.users_collection.find_one({'panther_id': user_id})
         if not user_data:
             st.warning("No user data found.")
             return []
@@ -233,7 +233,7 @@ class Chatbot:
     
     def delete_chat(self,user_id):
             # Get the user's current chat ID
-        user_doc = self.users_collection.find_one({"username": user_id})
+        user_doc = self.users_collection.find_one({'panther_id': user_id})
         current_chat_id = user_doc.get(f"current_chat_id_{self.bot_type}")
         if current_chat_id:
             chat_contents = user_doc.get(f"{self.bot_type}_chat_histories", {}).get(current_chat_id, {})
@@ -246,7 +246,7 @@ class Chatbot:
             result = self.chats_collection.insert_one(chat_entry)
             logging.info(f"Inserted Chat ID: {result.inserted_id}")
             self.users_collection.update_one(
-                    {"username": user_id},
+                    {'panther_id': user_id},
                     {
                     "$unset": {f"{self.bot_type}_chat_histories.{current_chat_id}": ""},
                     "$set": {f"current_chat_id_{self.bot_type}": None}  # Reset the current chat ID

@@ -5,7 +5,7 @@ from pymongo import MongoClient
 import logging
 import pandas as pd
 from components.chatbot import Chatbot
-from components.admin import mongo_uri,client,coursedb,users_collection,admin_panel
+from components.admin import mongo_uri,client,coursedb,users_collection,admin_panel,get_course_names,add_courses_to_student
 from dotenv import load_dotenv
 from datetime import datetime
 import uuid
@@ -15,7 +15,7 @@ import csv
 import jsonlines
 from components.fine_tuning import perform_fine_tuning,set_current_completion,add_examples,add_completions,fine_tune
 from components.sign_in import validate_email,authenticate_user,add_user,perform_sign_in_or_up
-
+from components.course_upload import course_upload
 load_dotenv()
 st.markdown(
     """
@@ -40,7 +40,8 @@ st.session_state.expander_open = False
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
     #this is to initialize, but within sign up it get filled in. for username, user type and student status.
-    st.session_state.username = ""
+    st.session_state.fname = ""
+    st.session_state.panther_id = ""
     st.session_state.user_type = ""
     st.session_state.status = ""
     st.session_state.selected_completion = None
@@ -67,7 +68,7 @@ if st.session_state.logged_in:
         # Display a success message temporarily
         # temp solution
         placeholder = st.empty()  # Create a placeholder
-        placeholder.success(f"Welcome, {st.session_state.username}!")  # Show the success message
+        placeholder.success(f"Welcome {st.session_state.fname}!")  # Show the success message
         time.sleep(2)  # Wait for 2 seconds
         placeholder.empty()  # Clear the message after 2 seconds
 
@@ -77,9 +78,9 @@ if st.session_state.logged_in:
             mongo_uri="mongodb://localhost:27017/",
             course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
         )   
-            user_id = st.session_state.username
-            user_courses = chatbot.get_courses(user_id)
-
+            user_id = st.session_state.panther_id
+            user_courses = set(chatbot.get_courses(user_id))
+            course_names = ['tutorbot','codebot'] + get_course_names(user_courses)
             chat_id = chatbot.get_current_chat_id(user_id)
             chat_history = chatbot.get_current_chat_history(user_id) if chat_id != 'deleted' else []
             st.session_state.selected_chat_id = chat_id
@@ -97,7 +98,7 @@ if st.session_state.logged_in:
 
             with colA2:
                 with st.popover("Bot"):
-                    bot_selection = st.radio("Choose your course:", user_courses,key="selected_bot") #This is to make sure when you create a new chat it stays in that bots page
+                    bot_selection = st.radio("Choose your course:", course_names,key="selected_bot") #This is to make sure when you create a new chat it stays in that bots page
                 # Update session state if selection changes
                 
                 # Initialize chatbot with the selected bot
@@ -150,7 +151,15 @@ if st.session_state.logged_in:
                 fine_tune()
     
     elif st.session_state.status =='pending_courses':
-        pass
+        #this is for old students who are logging into new semester.
+        courses = course_upload()
+        validate = st.button('validate')
+        #validate button clicked and it successfully returns courses, no errors.
+        if validate and courses:
+            add_courses_to_student(st.session_state.panther_id,courses)
+            time.sleep(3)
+            st.rerun()
+
     elif st.session_state.status =='pending_approval':
         st.info('Your information is pending approval, please wait and you will be notified once approved.')
     elif st.session_state.status =='rejected':

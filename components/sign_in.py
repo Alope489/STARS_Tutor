@@ -42,6 +42,8 @@ def perform_sign_in_or_up():
             user = authenticate_user(email, password)
             if user:
                 st.session_state.logged_in = True
+                st.session_state.fname = user['fname']
+                st.session_state.panther_id = user['panther_id']
                 st.session_state.user_type = user["user_type"]
                 st.session_state.status = user["status"] or None
                 st.success(f"Welcome back, {user['fname']}!")

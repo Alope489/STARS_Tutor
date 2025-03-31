@@ -25,7 +25,7 @@ def course_upload():
                    #fourth check student courses need to be inside courses database.
                    tutored_courses = parse_courses(courses)
                    #use this to test
-                #    tutored_courses =  ['CAP-2752','ABC-123','DEF-456']
+                   #tutored_courses =  ['CAP-2752','ABC-123','DEF-456']
                    if tutored_courses:
                        
                        st.session_state.courses_valid = True
