@@ -10,34 +10,25 @@ course_collection = coursedb['course_list']
 db = client["user_data"]
 users_collection = db["users"]
 
-# def get_user_type():
-#     user_id = st.session_state.username
-#     user_doc = users_collection.find_one({"username":user_id})
-#     user_type = user_doc.get('user_type')
-#     return user_type
 
-# def get_student_status():
-#     user_id = st.session_state.username
-#     user_doc = users_collection.find_one({"username":user_id})
-#     #None if they are tutor/admin
-#     student_status = user_doc.get('student_status',None)
-#     return student_status
-#Admin helper functions
 @st.dialog("Remove a course")
 def removeClassModal():
     st.write('Remove a course')
     with st.form(key='class_form'):
-        course_code = st.text_input("Insert class code:")
+        course_id = st.text_input("Insert class id:")
         submit = st.form_submit_button('Submit')
 
         if submit:
-            course_collection.delete_one({"course_code": course_code,})
-            st.success(f"Class {course_code} removed successfully!")
+            course_collection.delete_one({"course_id": course_id,})
+            st.success(f"Class {course_id} removed successfully!")
             st.rerun()
 
 def get_courses():
     courses = list(course_collection.find({}))
     return courses
+def get_enrolled_students():
+    students = list(users_collection.find({"status":"approved"}))
+    return students
 def parse_courses(courses):
     #this is to be used in course upload, receving a course array, need to filter out those inside the course collection
     tutored_courses = course_collection.find({
@@ -46,32 +37,56 @@ def parse_courses(courses):
     return list(tutored_courses)
 
 def get_pending_students():
-    students = list(users_collection.find({"student_status": "pending"}))
+    students = list(users_collection.find({"status": "pending_approval"}))
     return students
 
 @st.dialog("Approve Student")
-def approveStudent(student):
-    st.title(f"Are you sure you want to approve {student}?")
-    if st.button("Approve"):
-        users_collection.update_one(
-            {"username": student},
-            {"$set": {"student_status": "approved"}}
-        )
-        st.rerun()
-    elif st.button("Cancel"):
-        st.rerun()
+def approveStudent(email):
+    st.subheader(f"Are you sure you want to approve {email}?")
+    approve, cancel = st.columns(2)
+    with approve:
+        if st.button("Approve",key='confirm_approval'):
+            users_collection.update_one(
+                {"email": email},
+                {"$set": {"status": "approved"}}
+            )
+            st.success(f"Student {email} Approved!")
+            st.rerun()
+    with cancel:
+        if st.button("Cancel",key='cancel_approval'):
+            st.rerun()
 
 @st.dialog("Reject Student")
 def rejectStudent(student):
-    st.title(f"Are you sure you want to reject {student}?")
-    if st.button("Reject"):
-        users_collection.update_one(
-            {"username": student},
-            {"$set": {"student_status": "rejected"}}
-        )
-        st.rerun()
-    elif st.button("Cancel"):
-        st.rerun()
+    st.subheader(f"Are you sure you want to reject {student}?")
+    reject, cancel = st.columns(2)
+    with reject:
+        if st.button("Reject",key='confirm_rejection'):
+            users_collection.update_one(
+                {"email": student},
+                {"$set": {"status": "rejected"}}
+            )
+            st.warning(f"Student {student} Rejected!") 
+            st.rerun()
+    with cancel:
+        if st.button("Cancel",key='cancel_rejection'):
+            st.rerun()
+
+@st.dialog('Revise Student')
+def reviseStudent(student):
+    st.subheader('Are you sure you want student to reupload their course information?')
+    revise, cancel = st.columns(2)
+    with revise:
+        if st.button("Revise",key='confirm_revision'):
+            users_collection.update_one(
+                {"email": student},
+                {"$set": {"status": "pending_courses"}}
+            )
+            st.warning(f"Student {student} will not have to upload course information!") 
+            st.rerun()
+    with cancel:
+        if st.button("Cancel",key='cancel_revision'):
+            st.rerun()
 
 
 
@@ -79,16 +94,71 @@ def rejectStudent(student):
 def addclassModal():
     st.write('Add new classes')
     with st.form(key='class_form'):
-        course_code = st.text_input("Insert class code:")
         course_name = st.text_input("Insert class name")
         course_id = st.text_input('insert class id')
         submit = st.form_submit_button('Submit')
 
         if submit:
-            course_collection.insert_one({"course_name": course_name, "course_code": course_code, "course_id": course_id})
+            course_collection.insert_one({"course_name": course_name,  "course_id": course_id})
             st.success(f"Class {course_name} added successfully!")
             st.rerun()
 
+def students_page():
+    st.title("Pending Students")
+    data = get_pending_students()
+
+    df_pending = pd.DataFrame(data)
+
+    df_pending = df_pending.drop(columns=['_id','status','user_type','password'])
+    
+    st.write("Approve or Reject pending students")
+
+    # Display table
+    st.dataframe(df_pending)
+    student_names = df_pending['email'].to_list()
+    selected_student = st.selectbox("Select a student to approve/reject", student_names)
+
+    # Display buttons for approve/reject
+    col1,col2 = st.columns(2)
+    with col1:
+        approve_button = st.button("Approve",on_click=approveStudent,args=[selected_student])
+    with col2:
+        reject_button = st.button("Reject",on_click=rejectStudent,args=[selected_student])
+    
+    st.title('Enrolled Students')
+    enrolled_students = get_enrolled_students()
+    df_enrolled = pd.DataFrame(enrolled_students)
+    df_enrolled = df_enrolled.drop(columns=['_id','status','user_type','password'])
+    st.write('Reject or Revise current students')
+    st.dataframe(df_enrolled)
+
+    student_names = df_enrolled['email'].to_list()
+    selected_student = st.selectbox("Select a student to Reject/ Revise", student_names)
+
+    # Display buttons for approve/reject
+    col1,col2 = st.columns(2)
+    with col1:
+        approve_button = st.button("Reject",key='reject_enrolled',on_click=rejectStudent,args=[selected_student])
+    with col2:
+        reject_button = st.button("Revise",on_click=reviseStudent,args=[selected_student])
+
+def course_page():
+    st.title("Welcome to the admin dashboard")
+    st.write("Admin dashboard to add or remove courses")
+    courses = get_courses()
+    if not courses:
+        st.write("no courses found")
+    else:
+        st.write("Current Courses:")
+        df = pd.DataFrame(courses, columns=['course_name', 'course_id'])
+        st.dataframe(df)
+        col1,col2 = st.columns(2,gap='large')
+        with col1:
+            if st.button("Add new course"):
+                addclassModal()
+        with col2:
+            if st.button("Remove course"):
+                removeClassModal()
 def admin_panel():
     if "admin_page" not in st.session_state:
         st.session_state.admin_page = "courses"
@@ -98,52 +168,15 @@ def admin_panel():
         if st.sidebar.button("Course Settings"):
             st.session_state.admin_page ="courses"
             st.rerun()
-        if st.sidebar.button("Student Approval"):
-            st.session_state.admin_page ="student_approval"
+        if st.sidebar.button("Students"):
+            st.session_state.admin_page ="students"
             st.rerun()
     #The "pages"
     if st.session_state.admin_page =="courses":
-        st.title("Welcome to the admin dashboard")
-        st.write("Admin dashboard to add or remove courses")
-        courses = get_courses()
-        if not courses:
-            st.write("no courses found")
-        else:
-            st.write("some courses:")
-            df = pd.DataFrame(courses, columns=['course_name', 'course_code', 'course_id'])
-            st.table(df)
-            if st.button("Add new course"):
-                addclassModal()
-            if st.button("Remove course"):
-                removeClassModal()
+       course_page()
+            
+    elif st.session_state.admin_page =="students":
+        students_page()
 
-    elif st.session_state.admin_page =="student_approval":
-        st.title("Student Approval")
-
-        data = get_pending_students()
-
-        df = pd.DataFrame(data)
-
-        st.write("Students Pending Approval")
-
-            # Create table headers
-        cols = st.columns([3, 3, 2, 2, 1])  # Adjust column widths
-        cols[0].write("username")
-        cols[1].write("email")
-
-            # Loop through rows
-        for index, row in df.iterrows():
-            cols = st.columns([3, 3, 2, 2, 2])  
-            cols[0].write(row["username"])
-            cols[1].write(row["email"])
-                
-                
-                # Add a button for each row
-            if cols[3].button(f"Remove", key=f"remove_{row['username']}"):
-                st.warning(f"Student {row['email']} removed!") 
-                rejectStudent(row['username'])
-                    # st.rerun()
-            if cols[4].button(f"Approve", key=f"approve_{row['username']}"):
-                st.success(f"Student {row['username']} Approved!")
-                approveStudent(row['username'])
-                    # st.rerun()
+          
+            

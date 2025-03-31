@@ -42,7 +42,7 @@ if "logged_in" not in st.session_state:
     #this is to initialize, but within sign up it get filled in. for username, user type and student status.
     st.session_state.username = ""
     st.session_state.user_type = ""
-    st.session_state.student_status = ""
+    st.session_state.status = ""
     st.session_state.selected_completion = None
 if "auth_mode" not in st.session_state:
     st.session_state.auth_mode = "Sign In"
@@ -62,7 +62,8 @@ if st.session_state.logged_in:
     #Admin UI
     if st.session_state.user_type =="admin":
         admin_panel()
-    elif st.session_state.user_type=='tutor' or st.session_state.student_status=='approved':
+    #For approved students/ tutors
+    elif st.session_state.status=='approved':
         # Display a success message temporarily
         # temp solution
         placeholder = st.empty()  # Create a placeholder
@@ -148,11 +149,11 @@ if st.session_state.logged_in:
             if st.button("Fine Tune"):
                 fine_tune()
     
-    elif st.session_state.student_status =='pending_courses':
+    elif st.session_state.status =='pending_courses':
         pass
-    elif st.session_state.student_status =='pending_approval':
+    elif st.session_state.status =='pending_approval':
         st.info('Your information is pending approval, please wait and you will be notified once approved.')
-    elif st.session_state.student_status =='rejected':
+    elif st.session_state.status =='rejected':
         st.error('Your information has been rejected. Please contact adminstrator for more information: arehman@fiu.edu')
 else:
     perform_sign_in_or_up()
