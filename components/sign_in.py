@@ -14,6 +14,9 @@ chats_collection = archive["chats"]
 if 'courses_valid' not in st.session_state: 
     st.session_state.courses_valid = False
 
+if 'generated_code' not in st.session_state:
+    st.session_state.generated_code = ''
+
 def validate_email(email):
     """Ensure the email ends with @fiu.edu."""
     return email.endswith("@fiu.edu")

@@ -6,6 +6,10 @@ import pyperclip
 from datetime import datetime,timedelta,timezone
 import time
 
+
+if 'generated_code' not in st.session_state:
+    st.session_state.generated_code = ''
+
 @st.dialog("Remove a course")
 def removeClassModal():
     st.write('Remove a course')
@@ -148,26 +152,34 @@ def copy_to_clipboard(text):
 
 def find_token():
     token = list(tokens.find())
-    return token
+    return token[0]
 def remove_token():
     tokens.delete_many({})
+
 def tutors_page():
     #auth code for tutor sign up
     #admins have option of generating code and then setting it, or simply setting it with their own option
     st.title('Tutor Page')
     st.write('Set auth token for tutor sign up')
+    token = find_token()
+    if token:
+        expiration_date = token['expiresAt']
+        expiration_date = datetime.fromisoformat(str(expiration_date))
+        delta = expiration_date-datetime.now()
+        delta_string = f'{delta.days} days {delta.seconds // 3600} hours'
+        curr_token = st.text_input(f'Current Token, set to expire in {delta_string}',token['token'])
     col1,col2 = st.columns(2)
     with col1:
-        code = uuid4()
-        text_to_copy = st.text_area('Copy Code: ',code)
-        if st.button('Click to copy code'):
-            copy_to_clipboard(text_to_copy)
+        code = ''
+        text_to_copy = st.text_input('Copy Code: ',st.session_state.generated_code)
+        if st.button('Click to generate code'):
+            st.session_state.generated_code=uuid4()
+            st.rerun()
     with col2:
-        set_token = st.text_area('Set Token: ')
+        set_token = st.text_input('Set Token: ')
         if st.button('Set Auth Token'):
             if set_token:
                 #send to db, must remove previous contained in db.
-                token = find_token()
                 if token:
                     remove_token()
                 #must set attribute for expiresAt, 1 week from now is 604800

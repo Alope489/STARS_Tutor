@@ -45,6 +45,7 @@ if "logged_in" not in st.session_state:
     st.session_state.user_type = ""
     st.session_state.status = ""
     st.session_state.selected_completion = None
+    st.session_state.generated_code = ""
 if "auth_mode" not in st.session_state:
     st.session_state.auth_mode = "Sign In"
 if "messages" not in st.session_state:
