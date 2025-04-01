@@ -13,8 +13,13 @@ tokens = db['tokens']
 if 'courses_valid' not in st.session_state: 
     st.session_state.courses_valid = False
 def get_courses():
-    courses = list(course_collection.find({}))
+    courses = list(course_collection.find({},{"course_name":1,"course_id":1,"_id":0}))
     return courses
+def get_user_courses(user_id):
+        user_doc = users_collection.find_one({'panther_id':user_id})
+        user_courses = user_doc.get("courses", [])
+        return user_courses
+
 def get_course_names(course_ids):
     courses = list(course_collection.find({"course_id":{"$in":course_ids}},{"course_name":1,"_id":0}))
     course_names = [course['course_name']for course in courses]

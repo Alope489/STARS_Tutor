@@ -15,7 +15,7 @@ import csv
 import jsonlines
 from components.fine_tuning import perform_fine_tuning,set_current_completion,add_examples,add_completions,fine_tune
 from components.sign_in import validate_email,authenticate_user,add_user,perform_sign_in_or_up
-from components.db_functions import get_course_names,add_courses_to_student
+from components.db_functions import get_course_names,add_courses_to_student,get_user_courses
 from components.courses import course_upload
 load_dotenv()
 st.markdown(
@@ -43,7 +43,8 @@ if "logged_in" not in st.session_state:
     #this is to initialize, but within sign up it get filled in. for username, user type and student status.
     st.session_state.fname = ""
     st.session_state.panther_id = ""
-    st.session_state.user_type = ""
+    #can be changed to if signing it and confirmed to be admin/tutor. Or if signing up and authenticated as a tutor
+    st.session_state.user_type = "student"
     st.session_state.status = ""
     st.session_state.selected_completion = None
     st.session_state.generated_code = ""
@@ -57,8 +58,11 @@ if "show_fine_tune" not in st.session_state:
     st.session_state.show_fine_tune = False
 
 # App Structure, don't display in admin panel
+
 if not st.session_state.user_type=='admin':
     st.title("Stars Tutoring Chatbot")
+
+
 
 if st.session_state.logged_in:
     #Admin UI
@@ -80,7 +84,7 @@ if st.session_state.logged_in:
             course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
         )   
             user_id = st.session_state.panther_id
-            user_courses = chatbot.get_courses(user_id)
+            user_courses = get_user_courses(user_id)
             course_names = ['tutorbot','codebot'] + get_course_names(user_courses)
             chat_id = chatbot.get_current_chat_id(user_id)
             chat_history = chatbot.get_current_chat_history(user_id) if chat_id != 'deleted' else []
