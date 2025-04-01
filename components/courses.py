@@ -11,7 +11,7 @@ course_collection = coursedb['course_list']
 
 db = client["user_data"]
 users_collection = db["users"]
-
+tokens = db['tokens']
 
 if 'courses_valid' not in st.session_state: 
     st.session_state.courses_valid = False

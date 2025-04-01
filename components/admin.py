@@ -1,7 +1,10 @@
 import streamlit as st
 import pandas as pd
-from components.courses import course_collection,users_collection,get_pending_students,get_enrolled_students,get_courses
-
+from components.courses import course_collection,users_collection,get_pending_students,get_enrolled_students,get_courses,tokens
+from uuid import uuid4
+import pyperclip
+from datetime import datetime,timedelta,timezone
+import time
 
 @st.dialog("Remove a course")
 def removeClassModal():
@@ -136,7 +139,60 @@ def course_page():
         with col2:
             if st.button("Remove course"):
                 removeClassModal()
+def copy_to_clipboard(text):
+    try:
+        pyperclip.copy(text)
+        st.success('Successfully copied code')
+    except Exception as e:
+        st.error(f'Try installing pyperclip.  Error: {e}')
+
+def find_token():
+    token = list(tokens.find())
+    return token
+def remove_token():
+    tokens.delete_many({})
+def tutors_page():
+    #auth code for tutor sign up
+    #admins have option of generating code and then setting it, or simply setting it with their own option
+    st.title('Tutor Page')
+    st.write('Set auth token for tutor sign up')
+    col1,col2 = st.columns(2)
+    with col1:
+        code = uuid4()
+        text_to_copy = st.text_area('Copy Code: ',code)
+        if st.button('Click to copy code'):
+            copy_to_clipboard(text_to_copy)
+    with col2:
+        set_token = st.text_area('Set Token: ')
+        if st.button('Set Auth Token'):
+            if set_token:
+                #send to db, must remove previous contained in db.
+                token = find_token()
+                if token:
+                    remove_token()
+                #must set attribute for expiresAt, 1 week from now is 604800
+                expiry = timedelta(seconds=604800)
+                #mongodb operates in utc time
+                expiresAt = datetime.now() + expiry
+                tokens.insert_one({"token":set_token,"expiresAt":expiresAt})
+                st.success(f'Your token will expire at : \n\n {expiresAt}')
+                time.sleep(2)
+                st.rerun()
+            else:
+                st.error('Set the auth code correctly.')
+
+
 def admin_panel():
+    st.markdown(
+    """
+    <style>
+        .stButton > button {
+            width: 200px;  /* Adjust width as needed */
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
     if "admin_page" not in st.session_state:
         st.session_state.admin_page = "courses"
        
@@ -148,12 +204,17 @@ def admin_panel():
         if st.sidebar.button("Students"):
             st.session_state.admin_page ="students"
             st.rerun()
+        if st.sidebar.button("Tutors"):
+            st.session_state.admin_page ="tutors"
+            st.rerun()
     #The "pages"
     if st.session_state.admin_page =="courses":
        course_page()
             
     elif st.session_state.admin_page =="students":
         students_page()
+    elif st.session_state.admin_page=='tutors':
+        tutors_page()
 
           
             
