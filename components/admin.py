@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from components.courses import course_collection,users_collection,get_pending_students,get_enrolled_students,get_courses,tokens
+from components.db_functions import course_collection,users_collection,tokens,get_pending_students,get_enrolled_students,get_courses,find_token,remove_token,get_pending_tutors,get_enrolled_tutors
 from uuid import uuid4
 import pyperclip
 from datetime import datetime,timedelta,timezone
@@ -88,43 +88,56 @@ def addclassModal():
             st.rerun()
 
 def students_page():
-    st.title("Pending Students")
+    st.title('Students Page')
+    st.subheader("Pending Students")
     data = get_pending_students()
+    if data:
+        df_pending = pd.DataFrame(data)
+        columns_to_drop = ['_id','status','user_type','password']
+        #also drop any columns containg 'chat' which would include current chat ids and chat histories
+        chat_columns = df_pending.filter(regex='.*chat.*', axis=1).columns.tolist()
+        columns_to_drop = columns_to_drop + chat_columns
+        df_pending = df_pending.drop(columns=columns_to_drop)
+        
+        st.write("Approve or Reject pending students")
 
-    df_pending = pd.DataFrame(data)
+        # Display table
+        st.dataframe(df_pending)
+        student_names = df_pending['email'].to_list()
+        selected_student = st.selectbox("Select a student to approve/reject", student_names)
 
-    df_pending = df_pending.drop(columns=['_id','status','user_type','password'])
+        # Display buttons for approve/reject
+        col1,col2 = st.columns(2)
+        with col1:
+            approve_button = st.button("Approve",key='approve_pending_students',on_click=approveStudent,args=[selected_student])
+        with col2:
+            reject_button = st.button("Reject",key='reject_pending_students',on_click=rejectStudent,args=[selected_student])
+    else:
+        st.write('No pending students')
     
-    st.write("Approve or Reject pending students")
-
-    # Display table
-    st.dataframe(df_pending)
-    student_names = df_pending['email'].to_list()
-    selected_student = st.selectbox("Select a student to approve/reject", student_names)
-
-    # Display buttons for approve/reject
-    col1,col2 = st.columns(2)
-    with col1:
-        approve_button = st.button("Approve",on_click=approveStudent,args=[selected_student])
-    with col2:
-        reject_button = st.button("Reject",on_click=rejectStudent,args=[selected_student])
-    
-    st.title('Enrolled Students')
+    st.subheader('Enrolled Students')
     enrolled_students = get_enrolled_students()
-    df_enrolled = pd.DataFrame(enrolled_students)
-    df_enrolled = df_enrolled.drop(columns=['_id','status','user_type','password'])
-    st.write('Reject or Revise current students')
-    st.dataframe(df_enrolled)
+    if enrolled_students:
+        df_enrolled = pd.DataFrame(enrolled_students)
+        columns_to_drop = ['_id','status','user_type','password']
+        #also drop any columns containg 'chat' which would include current chat ids and chat histories
+        chat_columns = df_enrolled.filter(regex='.*chat.*', axis=1).columns.tolist()
+        columns_to_drop = columns_to_drop + chat_columns
+        df_enrolled = df_enrolled.drop(columns=columns_to_drop)
+        st.write('Reject or Revise current students')
+        st.dataframe(df_enrolled)
 
-    student_names = df_enrolled['email'].to_list()
-    selected_student = st.selectbox("Select a student to Reject/ Revise", student_names)
+        student_names = df_enrolled['email'].to_list()
+        selected_student = st.selectbox("Select a student to Reject/ Revise", student_names)
 
-    # Display buttons for approve/reject
-    col1,col2 = st.columns(2)
-    with col1:
-        approve_button = st.button("Reject",key='reject_enrolled',on_click=rejectStudent,args=[selected_student])
-    with col2:
-        reject_button = st.button("Revise",on_click=reviseStudent,args=[selected_student])
+        # Display buttons for approve/reject
+        col1,col2 = st.columns(2)
+        with col1:
+            reject_button = st.button("Reject",key='reject_enrolled_students',on_click=rejectStudent,args=[selected_student])
+        with col2:
+            revise_button = st.button("Revise",key='revise_enrolled_students',on_click=reviseStudent,args=[selected_student])
+    else:
+        st.write('No enrolled students')
 
 def course_page():
     st.title("Welcome to the admin dashboard")
@@ -143,24 +156,12 @@ def course_page():
         with col2:
             if st.button("Remove course"):
                 removeClassModal()
-def copy_to_clipboard(text):
-    try:
-        pyperclip.copy(text)
-        st.success('Successfully copied code')
-    except Exception as e:
-        st.error(f'Try installing pyperclip.  Error: {e}')
-
-def find_token():
-    token = list(tokens.find())
-    return token[0]
-def remove_token():
-    tokens.delete_many({})
 
 def tutors_page():
     #auth code for tutor sign up
     #admins have option of generating code and then setting it, or simply setting it with their own option
     st.title('Tutor Page')
-    st.write('Set auth token for tutor sign up')
+    st.subheader('Set Auth Code for tutor sign up')
     token = find_token()
     if token:
         expiration_date = token['expiresAt']
@@ -192,6 +193,56 @@ def tutors_page():
                 st.rerun()
             else:
                 st.error('Set the auth code correctly.')
+
+    #display pending and enrolled tutors similar to students page
+    st.subheader('Approve Tutors')
+    data = get_pending_tutors()
+    if data:
+        df_pending = pd.DataFrame(data)
+        columns_to_drop = ['_id','status','user_type','password']
+        chat_columns = df_pending.filter(regex='.*chat.*', axis=1).columns.tolist()
+        columns_to_drop = columns_to_drop + chat_columns
+        df_pending = df_pending.drop(columns=columns_to_drop)
+        
+        st.write("Approve or Reject pending tutors")
+
+        # Display table
+        st.dataframe(df_pending)
+        student_names = df_pending['email'].to_list()
+        selected_tutor = st.selectbox("Select a tutor to approve/reject", student_names)
+        # Display buttons for approve/reject
+        col1,col2 = st.columns(2)
+        with col1:
+            #same approve/reject functions can be used
+            approve_button = st.button("Approve",key='approve_pending_tutor',on_click=approveStudent,args=[selected_tutor])
+        with col2:
+            reject_button = st.button("Reject",key='reject_pending_tutor',on_click=rejectStudent,args=[selected_tutor])
+    else:
+        st.write('No pending tutors')
+
+    st.subheader('Enrolled Tutors')
+    enrolled_tutors = get_enrolled_tutors()
+    if enrolled_tutors:
+        df_enrolled = pd.DataFrame(enrolled_tutors)
+        columns_to_drop = ['_id','status','user_type','password']
+        #also drop any columns containg 'chat' which would include current chat ids and chat histories
+        chat_columns = df_enrolled.filter(regex='.*chat.*', axis=1).columns.tolist()
+        columns_to_drop = columns_to_drop + chat_columns
+        df_enrolled = df_enrolled.drop(columns=columns_to_drop)
+        st.write('Reject or Revise current tutors')
+        st.dataframe(df_enrolled)
+
+        tutor_names = df_enrolled['email'].to_list()
+        selected_tutor = st.selectbox("Select a student to Reject/ Revise", tutor_names)
+
+        # Display buttons for approve/reject
+        col1,col2 = st.columns(2)
+        with col1:
+            reject_button = st.button("Reject",key='reject_enrolled_tutor',on_click=rejectStudent,args=[selected_tutor])
+        with col2:
+            revise_button = st.button("Revise",key='revise_enrolled_tutor',on_click=reviseStudent,args=[selected_tutor])
+    else:
+        st.write('No enrolled tutors')
 
 
 def admin_panel():

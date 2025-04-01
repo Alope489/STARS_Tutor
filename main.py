@@ -15,7 +15,8 @@ import csv
 import jsonlines
 from components.fine_tuning import perform_fine_tuning,set_current_completion,add_examples,add_completions,fine_tune
 from components.sign_in import validate_email,authenticate_user,add_user,perform_sign_in_or_up
-from components.courses import course_upload,get_course_names,add_courses_to_student,mongo_uri,client,coursedb,users_collection
+from components.db_functions import get_course_names,add_courses_to_student
+from components.courses import course_upload
 load_dotenv()
 st.markdown(
     """
