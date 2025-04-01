@@ -95,15 +95,15 @@ def sign_in_form():
 def tutor_course_sign_up():
     courses = get_courses()
     merged_list = [f"{course['course_id']} - {course['course_name']}"for course in courses]
-    options = st.multiselect('Select your courses',merged_list)
-    chosen_course_ids = [option.split(' - ')[0] for option in options]
+    course_strings = st.multiselect('Select your courses',merged_list)
+    chosen_course_ids = [option.split(' - ')[0] for option in course_strings]
     #meant more for students, tutors just need a confirmation dialog.
     st.session_state.courses_valid=True
-    return chosen_course_ids
+    return chosen_course_ids,course_strings
 
 @st.dialog('Confirm your courses')
-def tutor_course_confirmation(fname,lname,email,password,user_type,panther_id,courses):
-    st.write(courses)
+def tutor_course_confirmation(fname,lname,email,password,user_type,panther_id,courses,courses_strings):
+    st.write(courses_strings)
     approve = st.button('Confirm')
     if approve:
         process_user(fname,lname,email,password,user_type,panther_id,courses)
@@ -132,7 +132,7 @@ def sign_up_form():
         tutor_button = st.button('Tutor?',on_click=tutor_auth_form)
         courses = course_upload()
     else:
-        courses =tutor_course_sign_up()
+        courses,course_strings =tutor_course_sign_up()
     col1,col2,col3 = st.columns([1,1,2])
     with col1:
         st.empty()
@@ -147,7 +147,7 @@ def sign_up_form():
             elif st.session_state.courses_valid:
                 #students have to go through course validation from courses.py and courses_valid will be True once validated. Tutors don't have validation just confirmation
                 if st.session_state.user_type=='tutor':
-                    tutor_course_confirmation(fname,lname,email, password,st.session_state.user_type,panther_id,courses)
+                    tutor_course_confirmation(fname,lname,email, password,st.session_state.user_type,panther_id,courses,course_strings)
                 else:
                    process_user(fname,lname,email, password,st.session_state.user_type,panther_id,courses)
     with col3:
