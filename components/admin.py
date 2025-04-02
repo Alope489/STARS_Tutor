@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from components.db_functions import course_collection,users_collection,tokens,get_pending_students,get_enrolled_students,get_courses,find_token,remove_token,get_pending_tutors,get_enrolled_tutors
 from uuid import uuid4
-import pyperclip
 from datetime import datetime,timedelta,timezone
 import time
 

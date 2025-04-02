@@ -10,11 +10,13 @@ def course_upload():
     st.image('components\images\FIU Schedule.png')
     #first check, is to ensure its a pdf
     try:
-        file = st.file_uploader("Choose a file")
+        file = st.file_uploader("Choose a file", type=["pdf"])
         if file:
             reader = PdfReader(file)
-            last_page  = reader.pages[-1]
-            text = last_page.extract_text()
+            pages = reader.pages
+            text = ""
+            for page in pages:
+                text+=page.extract_text()
             # seconc check text should contain : 'Schedule of Classes', else provide an error message
             if 'Schedule of Classes' in text:
                 pattern = r'[A-Z]{3}-\d{4}'
@@ -24,7 +26,7 @@ def course_upload():
                    #fourth check student courses need to be inside courses database.
                    tutored_courses = parse_courses(courses)
                    #use this to test
-                   tutored_courses =  ['CAP-2752','ABC-123','DEF-456']
+                #    tutored_courses =  ['CAP-2752','ABC-123','DEF-456']
                    if tutored_courses:
                        
                        st.session_state.courses_valid = True
@@ -40,4 +42,4 @@ def course_upload():
             else:
                 st.error('Please Provide PDF of your class schedule. Go to MyFIU, Manage Classes, View Class schedule. Then, you will click on print schedule and download the file.')
     except Exception as e:
-        st.error('Please Provide PDF of your class schedule. Go to MyFIU, Manage Classes, View Class schedule. Then, you will click on print schedule and download the file. ')
+        st.error('Not a PDF. Please Provide PDF of your class schedule. Go to MyFIU, Manage Classes, View Class schedule. Then, you will click on print schedule and download the file. ')
