@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from components.db_functions import course_collection,users_collection,tokens,get_pending_students,get_enrolled_students,get_courses,find_token,remove_token,get_pending_tutors,get_enrolled_tutors
+from components.db_functions import course_collection,users_collection,tokens,get_pending_students,get_enrolled_students,get_courses,find_token,remove_token,get_pending_tutors,get_enrolled_tutors,set_archive_date,get_archive_date
 from uuid import uuid4
 import pyperclip
 from datetime import datetime,timedelta,timezone
@@ -139,6 +139,17 @@ def students_page():
     else:
         st.write('No enrolled students')
 
+@st.dialog('Confirm Archival Date')
+def archival_date_confirmation(set_date):
+    st.write('After an archive students will have to reupload their courses and you will have to approve them again')
+    # st.write(f'{year} {month} {day}')
+    confirm = st.button('confirm')
+    if confirm:
+        set_archive_date(set_date)
+        st.success('Date has been set!')
+        time.sleep(1)
+        st.rerun()
+
 def course_page():
     st.title("Welcome to the admin dashboard")
     st.write("Admin dashboard to add or remove courses")
@@ -146,7 +157,7 @@ def course_page():
     if not courses:
         st.write("no courses found")
     else:
-        st.write("Current Courses:")
+        st.subheader("Current Courses:")
         df = pd.DataFrame(courses, columns=['course_name', 'course_id'])
         st.dataframe(df)
         col1,col2 = st.columns(2,gap='large')
@@ -156,6 +167,20 @@ def course_page():
         with col2:
             if st.button("Remove course"):
                 removeClassModal()
+    
+    archival_date = get_archive_date()
+    if archival_date:
+        archival_date = archival_date[0]['archival_date']
+        date_str = archival_date.strftime("%B %d, %Y")
+        st.subheader(f"Current Archival Date for all chats: {date_str}")
+    set_date = st.date_input('Set Archival Date',value=None)
+    if set_date:
+        # date_arr = set_date.split('-')
+        # year=date_arr[0]
+        # month=date_arr[1]
+        # day = date_arr[2]
+        set_button = st.button('set',on_click=archival_date_confirmation,args=[set_date])
+    
 
 def tutors_page():
     #auth code for tutor sign up
@@ -164,6 +189,7 @@ def tutors_page():
     st.subheader('Set Auth Code for tutor sign up')
     token = find_token()
     if token:
+        token = token[0]
         expiration_date = token['expiresAt']
         expiration_date = datetime.fromisoformat(str(expiration_date))
         delta = expiration_date-datetime.now()
@@ -261,7 +287,7 @@ def admin_panel():
        
     with st.sidebar:
         st.title("Admin Panel")
-        if st.sidebar.button("Course Settings"):
+        if st.sidebar.button("Menu"):
             st.session_state.admin_page ="courses"
             st.rerun()
         if st.sidebar.button("Students"):

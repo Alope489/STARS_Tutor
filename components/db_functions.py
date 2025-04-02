@@ -1,5 +1,7 @@
 import streamlit as st
 from pymongo import MongoClient
+from datetime import datetime,date
+
 
 mongo_uri = "mongodb://localhost:27017/"
 client = MongoClient(mongo_uri)
@@ -9,12 +11,35 @@ course_collection = coursedb['course_list']
 db = client["user_data"]
 users_collection = db["users"]
 tokens = db['tokens']
+archival_date = db['archival_date']
 
 if 'courses_valid' not in st.session_state: 
     st.session_state.courses_valid = False
+
+def set_archive_date(set_date):
+    #set_date is a date object but we need to make it datetime. Just add a time field with the minimum time 0:0:0 at midnight
+    if isinstance(set_date,date):
+        set_date = datetime.combine(set_date,datetime.min.time())
+    archival_date.update_one({},{"$set":{"archival_date":set_date}})
+def get_archive_date():
+    archive_date = list(archival_date.find({}))
+    return archive_date
 def get_courses():
     courses = list(course_collection.find({},{"course_name":1,"course_id":1,"_id":0}))
     return courses
+def get_all_chat_fields():
+    users = users_collection.find()
+    chat_fields = set()
+    for user in users:
+        for field in user:
+            if 'chat' in field.lower():
+                chat_fields.add(field)
+    return list(chat_fields)
+def archive_chats():
+    #status back to pending_courses, courses array empty, all chat histories and chat_ids removed
+    chat_fields = get_all_chat_fields()
+    chat_fields_unset = {field: "" for field in chat_fields}
+    users_collection.update_many({},{"$set":{"status":"pending_courses","courses":[]},"$unset":chat_fields_unset})
 def get_user_courses(user_id):
         user_doc = users_collection.find_one({'panther_id':user_id})
         user_courses = user_doc.get("courses", [])
@@ -57,7 +82,12 @@ def get_enrolled_tutors():
     return enrolled_tutors
 def find_token():
     token = list(tokens.find())
-    return token[0]
+    return token
 
 def remove_token():
     tokens.delete_many({})
+
+# chat_fields = get_all_chat_fields()
+# chat_fields_unset = {field: "" for field in chat_fields}
+# print(chat_fields_unset)
+archive_chats()

@@ -2,7 +2,7 @@ from pymongo import MongoClient
 import streamlit as st
 import logging
 from components.courses import course_upload
-from components.db_functions import find_token,get_courses
+from components.db_functions import find_token,get_courses,add_courses_to_student
 client = MongoClient("mongodb://localhost:27017/")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 import time
@@ -102,11 +102,14 @@ def tutor_course_sign_up():
     return chosen_course_ids,course_strings
 
 @st.dialog('Confirm your courses')
-def tutor_course_confirmation(fname,lname,email,password,user_type,panther_id,courses,courses_strings):
+def tutor_course_confirmation(panther_id,courses,courses_strings,enrollment_type,fname=None,lname=None,email=None,password=None,user_type=None):
     st.write(courses_strings)
     approve = st.button('Confirm')
     if approve:
-        process_user(fname,lname,email,password,user_type,panther_id,courses)
+        if enrollment_type=='sign_up':
+            process_user(fname,lname,email,password,user_type,panther_id,courses)
+        if enrollment_type=='course_enrollment':
+            add_courses_to_student(panther_id,courses)
         
         
 
@@ -147,7 +150,7 @@ def sign_up_form():
             elif st.session_state.courses_valid:
                 #students have to go through course validation from courses.py and courses_valid will be True once validated. Tutors don't have validation just confirmation
                 if st.session_state.user_type=='tutor':
-                    tutor_course_confirmation(fname,lname,email, password,st.session_state.user_type,panther_id,courses,course_strings)
+                    tutor_course_confirmation(panther_id,courses,course_strings,'sign_up',fname,lname,email, password,st.session_state.user_type)
                 else:
                    process_user(fname,lname,email, password,st.session_state.user_type,panther_id,courses)
     with col3:

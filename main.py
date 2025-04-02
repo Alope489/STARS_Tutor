@@ -14,7 +14,7 @@ import json
 import csv
 import jsonlines
 from components.fine_tuning import perform_fine_tuning,set_current_completion,add_examples,add_completions,fine_tune
-from components.sign_in import validate_email,authenticate_user,add_user,perform_sign_in_or_up
+from components.sign_in import validate_email,authenticate_user,add_user,perform_sign_in_or_up,tutor_course_confirmation,tutor_course_sign_up
 from components.db_functions import get_course_names,add_courses_to_student,get_user_courses
 from components.courses import course_upload
 load_dotenv()
@@ -159,14 +159,18 @@ if st.session_state.logged_in:
                 fine_tune()
     
     elif st.session_state.status =='pending_courses':
-        #this is for old students who are logging into new semester.
-        courses = course_upload()
-        validate = st.button('validate')
-        #validate button clicked and it successfully returns courses, no errors.
-        if validate and courses:
-            add_courses_to_student(st.session_state.panther_id,courses)
-            time.sleep(3)
-            st.rerun()
+        #this is for old students/tutors who are logging into new semester.
+        if st.session_state.user_type=='student':
+            courses = course_upload()
+            validate = st.button('validate')
+            #validate button clicked and it successfully returns courses, no errors.
+            if validate and courses:
+                add_courses_to_student(st.session_state.panther_id,courses)
+                time.sleep(3)
+                st.rerun()
+        else:
+            course_ids, course_strings = tutor_course_sign_up()
+            submit = st.button('Submit',on_click=tutor_course_confirmation,args=[st.session_state.panther_id,course_ids,course_strings,'course_enrollment'])
 
     elif st.session_state.status =='pending_approval':
         st.info('Your information is pending approval, please wait and you will be notified once approved.')
