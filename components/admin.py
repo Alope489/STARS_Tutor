@@ -164,6 +164,7 @@ def tutors_page():
     st.subheader('Set Auth Code for tutor sign up')
     token = find_token()
     if token:
+        token = token[0]
         expiration_date = token['expiresAt']
         expiration_date = datetime.fromisoformat(str(expiration_date))
         delta = expiration_date-datetime.now()

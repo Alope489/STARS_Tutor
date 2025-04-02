@@ -57,7 +57,7 @@ def get_enrolled_tutors():
     return enrolled_tutors
 def find_token():
     token = list(tokens.find())
-    return token[0]
+    return token
 
 def remove_token():
     tokens.delete_many({})
