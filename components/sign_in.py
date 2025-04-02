@@ -1,6 +1,7 @@
 from pymongo import MongoClient
 import streamlit as st
 import logging
+from components.courses import course_upload
 
 db_username = st.secrets['DB_USER']
 db_pwd = st.secrets['DB_PWD']
@@ -14,22 +15,26 @@ users_collection = db["users"]
 archive = client["chat_app"]
 chats_collection = archive["chats"]
 
+if 'courses_valid' not in st.session_state: 
+    st.session_state.courses_valid = False
+
 def validate_email(email):
     """Ensure the email ends with @fiu.edu."""
     return email.endswith("@fiu.edu")
 
-def add_user(username, email, password):
+def add_user(fname,lname,email, password,user_type,panther_id,courses):
     """Add a new user to the database."""
     if users_collection.find_one({"email": email}):
         return "Email already registered."
-    users_collection.insert_one({"username": username, "email": email, "password": password})
-    logging.info(f"New user added: {username}, {email}")
+    #new users have had their course info approved, therefore their status is immediately pending approval
+    users_collection.insert_one({"fname":fname,"lname":lname, "email": email, "password": password,"panther_id":panther_id,"user_type":user_type,"status":"pending_approval","courses":courses})
+    logging.info(f"New user added: {email}")
     return "success"
 def authenticate_user(email, password):
     """Authenticate user with email and password."""
     user = users_collection.find_one({"email": email, "password": password})
     if user:
-        logging.info(f"User authenticated: {user['username']}")
+        logging.info(f"User authenticated: {user['email']}")
     return user
 
 def perform_sign_in_or_up():
@@ -41,8 +46,14 @@ def perform_sign_in_or_up():
             user = authenticate_user(email, password)
             if user:
                 st.session_state.logged_in = True
-                st.session_state.username = user["username"]
-                st.success(f"Welcome back, {user['username']}!")
+                st.session_state.fname = user['fname']
+                st.session_state.user_type = user["user_type"]
+                #only for students/ tutors
+                if 'panther_id' in user:
+                    st.session_state.panther_id = user['panther_id']
+                if 'status' in user:
+                    st.session_state.status =user['status']
+                st.success(f"Welcome back, {user['fname']}!")
                 st.rerun()
             else:
                 st.error("Invalid email or password.")
@@ -52,16 +63,21 @@ def perform_sign_in_or_up():
 
      elif st.session_state.auth_mode == "Sign Up":
         st.subheader("Sign Up")
-        username = st.text_input("Username")
         email = st.text_input("FIU Email Address")
+        fname = st.text_input('First Name')
+        lname = st.text_input('Last Name')
+        panther_id = st.text_input('Panther ID')
         password = st.text_input("Password", type="password")
+        courses = course_upload()
         if st.button("Sign Up"):
             if not validate_email(email):
                 st.error("Please use a valid FIU email address.")
-            elif len(password) < 8:
+            elif len(password) < 8 :
                 st.error("Password must be at least 8 characters long.")
-            else:
-                result = add_user(username, email, password)
+            elif len(panther_id)!=7 or not  panther_id.isdigit():
+                st.error('Please fill in your panther id correctly.')
+            elif st.session_state.courses_valid:
+                result = add_user(fname,lname,email, password,"student",panther_id,courses)
                 if result == "success":
                     st.success("Account created successfully! Please log in.")
                     st.session_state.auth_mode = "Sign In"

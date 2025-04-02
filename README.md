@@ -23,10 +23,11 @@
       ```
 
 4. **Set Up Environment Variables:**
-    - Create a `.env` file in the root directory.
+    - Create a `.streamlit` folder in the root directory, followed by a secrets.toml inside the folder .
     - Add the following variables:
       ```
       OPENAI_API_KEY=your OpenAI API key
+      GROQ_API_KEY=your Groq API key
       ```
 
 # MongoDB Setup
