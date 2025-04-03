@@ -154,7 +154,8 @@ if st.session_state.logged_in:
         #TODO move examples and completions to DB then perform this additional check.
         #TODO meet with andres to ensure fine tuning can be done on 1 model, then create additional fine tuned models
         #TODO when fine tuning and pulling completions from db they would need to write to a jsonl file.
-        if  st.session_state.user_type == "tutor" and len(st.session_state.messages) > 1:
+        #TODO Only display fine tune if fine tuned model exists -> display message above saying model tempoarily not available.
+        if st.session_state.user_type == "tutor" and len(st.session_state.messages) > 1:
             if st.button("Fine Tune"):
                 fine_tune()
     

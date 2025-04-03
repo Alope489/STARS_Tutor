@@ -1,7 +1,7 @@
 import streamlit as st
 from pymongo import MongoClient
 from datetime import datetime,date
-
+import time
 
 mongo_uri = "mongodb://localhost:27017/"
 client = MongoClient(mongo_uri)
@@ -42,7 +42,8 @@ def get_all_chat_fields():
     return list(chat_fields),chat_histories_by_user
 
 def archive_user_chat_histories(user_chat_histories):
-    archive_chats_collection.insert_many(user_chat_histories)
+    if user_chat_histories:
+        archive_chats_collection.insert_many(user_chat_histories)
 
 
 def archive_chats():
@@ -69,6 +70,8 @@ def add_courses_to_student(panther_id,course_ids):
                                 )
     st.success('Course information successfully uploaded')
     st.session_state.status='pending_approval'
+    time.sleep(2)
+    st.rerun()
 
 def parse_courses(courses):
     #this is to be used in course upload, receving a course array, need to filter out those inside the course collection

@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from components.db_functions import course_collection,users_collection,tokens,get_pending_students,get_enrolled_students,get_courses,find_token,remove_token,get_pending_tutors,get_enrolled_tutors,set_archive_date,get_archive_date
+from components.db_functions import course_collection,users_collection,tokens,get_pending_students,get_enrolled_students,get_courses,find_token,remove_token,get_pending_tutors,get_enrolled_tutors,set_archive_date, archive_chats
 from uuid import uuid4
 from datetime import datetime,timedelta,timezone
 import time
@@ -140,15 +140,25 @@ def students_page():
 
 @st.dialog('Confirm Archival Date')
 def archival_date_confirmation(set_date):
+    #if scheduler is to be used
     st.write('After an archive students will have to reupload their courses and you will have to approve them again')
     # st.write(f'{year} {month} {day}')
-    confirm = st.button('confirm')
+    confirm = st.button('confirm',key='confirm_archive_date')
     if confirm:
         set_archive_date(set_date)
         st.success('Date has been set!')
         time.sleep(1)
         st.rerun()
 
+@st.dialog('Confirm Archive')
+def confirm_archive():
+    st.write('Are you sure you want to archive all chats? After an archive students and tutors will have to reupload their courses and you will have to approve them again. This is only meant for end of semester.')
+    confirm = st.button('confirm',key='confirm_archive')
+    if confirm:
+        archive_chats()
+        st.success('Chats archived!')
+        time.sleep(2)
+        st.rerun()
 def course_page():
     st.title("Welcome to the admin dashboard")
     st.write("Admin dashboard to add or remove courses")
@@ -167,18 +177,8 @@ def course_page():
             if st.button("Remove course"):
                 removeClassModal()
     
-    archival_date = get_archive_date()
-    if archival_date:
-        archival_date = archival_date[0]['archival_date']
-        date_str = archival_date.strftime("%B %d, %Y")
-        st.subheader(f"Current Archival Date for all chats: {date_str}")
-    set_date = st.date_input('Set Archival Date',value=None)
-    if set_date:
-        # date_arr = set_date.split('-')
-        # year=date_arr[0]
-        # month=date_arr[1]
-        # day = date_arr[2]
-        set_button = st.button('set',on_click=archival_date_confirmation,args=[set_date])
+    st.subheader('Archive Chats at end of semester')
+    st.button('Archive',on_click=confirm_archive)
     
 
 def tutors_page():
