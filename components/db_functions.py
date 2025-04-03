@@ -5,18 +5,39 @@ import time
 
 mongo_uri = "mongodb://localhost:27017/"
 client = MongoClient(mongo_uri)
-coursedb = client['courses']
-archived_chats_db = client['chat_app']
-archive_chats_collection = archived_chats_db['chats']
-course_collection = coursedb['course_list']
-
+#db user_data has collections for users, courses, tokens, and archival date. 
 db = client["user_data"]
+
+course_collection = db['courses']
 users_collection = db["users"]
 tokens = db['tokens']
 archival_date = db['archival_date']
+#db chat_app for archived chats
+archived_chats_db = client['chat_app']
+archive_chats_collection = archived_chats_db['chats']
+
+
 
 if 'courses_valid' not in st.session_state: 
     st.session_state.courses_valid = False
+def get_current_semester():
+    date = datetime.now()
+    # date =  date.strftime("%Y-%m-%d")
+    year = date.year
+    day = date.day
+    month = date.month
+    semester_type = ""
+    if 1<=month <=5:
+        if month==5 and day>7:
+            semester_type=='Summer'
+        semester_type='Spring'
+    elif 6<=month<=8:
+        semester_type='Summer'
+    else:
+        semester_type='Fall'
+    
+    semester = f'{semester_type} {year}'
+    return semester
 
 def set_archive_date(set_date):
     #set_date is a date object but we need to make it datetime. Just add a time field with the minimum time 0:0:0 at midnight
@@ -33,12 +54,13 @@ def get_all_chat_fields():
     users = users_collection.find()
     chat_fields = set()
     chat_histories_by_user = []
+    semester=  get_current_semester()
     for user in users:
         for field in user:
             if 'chat' in field.lower():
                 chat_fields.add(field)
             if 'histories' in field.lower() and user['panther_id']:
-                chat_histories_by_user.append({"panther_id":user["panther_id"],field:user[field]})
+                chat_histories_by_user.append({"panther_id":user["panther_id"],field:user[field],"semester":semester})
     return list(chat_fields),chat_histories_by_user
 
 def archive_user_chat_histories(user_chat_histories):

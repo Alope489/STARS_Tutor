@@ -60,6 +60,7 @@ def add_completions(selected_bot,prompt,answer):
         writer.write(completion)
     perform_fine_tuning()
 
+
 def validate_final_answer(user_question,final_answer):
     print(user_question,final_answer)
     selected_bot = st.session_state.selected_bot

@@ -63,6 +63,18 @@ def tutor_auth_form():
             st.rerun()
         else:
             st.error('That code is either incorrect or expired')
+def unique_email(email):
+    #returns True if it is a unique entry, unique email and panther id
+    user_by_email = users_collection.find_one({"email":email})
+    if user_by_email:
+        return False
+    return True
+def unique_panther_id(panther_id):
+    user_by_panther_id = users_collection.find_one({"panther_id":panther_id})
+    if user_by_panther_id:
+        return False 
+    return True
+
 def sign_in_form():
      #can be replaced with SSO.
      st.subheader("Sign In")
@@ -145,6 +157,10 @@ def sign_up_form():
                 st.error("Please use a valid FIU email address.")
             elif len(password) < 8 :
                 st.error("Password must be at least 8 characters long.")
+            elif not unique_email(email):
+                st.error('This email is already registered!')
+            elif not unique_panther_id(panther_id):
+                st.error('This panther id is already registered!')
             elif len(panther_id)!=7 or not  panther_id.isdigit():
                 st.error('Please fill in your panther id correctly.')
             elif st.session_state.courses_valid:

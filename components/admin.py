@@ -1,13 +1,17 @@
 import streamlit as st
 import pandas as pd
-from components.db_functions import course_collection,users_collection,tokens,get_pending_students,get_enrolled_students,get_courses,find_token,remove_token,get_pending_tutors,get_enrolled_tutors,set_archive_date, archive_chats
+from components.db_functions import course_collection,users_collection,tokens,get_pending_students,get_enrolled_students,get_courses,find_token,remove_token,get_pending_tutors,get_enrolled_tutors,set_archive_date, archive_chats,get_current_semester
 from uuid import uuid4
 from datetime import datetime,timedelta,timezone
 import time
 
 
+
+
 if 'generated_code' not in st.session_state:
     st.session_state.generated_code = ''
+if 'current_semester' not in st.session_state:
+    st.session_state.current_semester =get_current_semester()
 
 @st.dialog("Remove a course")
 def removeClassModal():
@@ -159,8 +163,10 @@ def confirm_archive():
         st.success('Chats archived!')
         time.sleep(2)
         st.rerun()
+
 def course_page():
     st.title("Welcome to the admin dashboard")
+    st.subheader(st.session_state.current_semester)
     st.write("Admin dashboard to add or remove courses")
     courses = get_courses()
     if not courses:
@@ -304,5 +310,3 @@ def admin_panel():
     elif st.session_state.admin_page=='tutors':
         tutors_page()
 
-          
-            
