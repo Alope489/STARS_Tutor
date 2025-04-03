@@ -6,6 +6,8 @@ from datetime import datetime,date
 mongo_uri = "mongodb://localhost:27017/"
 client = MongoClient(mongo_uri)
 coursedb = client['courses']
+archived_chats_db = client['chat_app']
+archive_chats_collection = archived_chats_db['chats']
 course_collection = coursedb['course_list']
 
 db = client["user_data"]
@@ -30,16 +32,25 @@ def get_courses():
 def get_all_chat_fields():
     users = users_collection.find()
     chat_fields = set()
+    chat_histories_by_user = []
     for user in users:
         for field in user:
             if 'chat' in field.lower():
                 chat_fields.add(field)
-    return list(chat_fields)
+            if 'histories' in field.lower() and user['panther_id']:
+                chat_histories_by_user.append({"panther_id":user["panther_id"],field:user[field]})
+    return list(chat_fields),chat_histories_by_user
+
+def archive_user_chat_histories(user_chat_histories):
+    archive_chats_collection.insert_many(user_chat_histories)
+
+
 def archive_chats():
-    #status back to pending_courses, courses array empty, all chat histories and chat_ids removed
-    chat_fields = get_all_chat_fields()
+    #for all users except admins status back to pending_courses, courses array empty, all chat histories and chat_ids removed
+    chat_fields, chat_histories_by_user = get_all_chat_fields()
+    archive_user_chat_histories(chat_histories_by_user)
     chat_fields_unset = {field: "" for field in chat_fields}
-    users_collection.update_many({},{"$set":{"status":"pending_courses","courses":[]},"$unset":chat_fields_unset})
+    users_collection.update_many({"user_type":{"$ne":"admin"}},{"$set":{"status":"pending_courses","courses":[]},"$unset":chat_fields_unset})
 def get_user_courses(user_id):
         user_doc = users_collection.find_one({'panther_id':user_id})
         user_courses = user_doc.get("courses", [])
@@ -87,7 +98,4 @@ def find_token():
 def remove_token():
     tokens.delete_many({})
 
-# chat_fields = get_all_chat_fields()
-# chat_fields_unset = {field: "" for field in chat_fields}
-# print(chat_fields_unset)
-archive_chats()
+
