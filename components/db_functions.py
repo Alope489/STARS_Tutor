@@ -64,7 +64,7 @@ def parse_courses(courses):
     tutored_courses = course_collection.find({
         'course_id' : {"$in":courses}
     })
-    return list(tutored_courses)
+    return [course["course_id"] for course in tutored_courses]
 
 def get_pending_students():
     students = list(users_collection.find({"user_type":"student","status": "pending_approval"}))
