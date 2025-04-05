@@ -15,7 +15,7 @@ import csv
 import jsonlines
 from components.fine_tuning import perform_fine_tuning,set_current_completion,fine_tune
 from components.sign_in import validate_email,authenticate_user,add_user,perform_sign_in_or_up,tutor_course_confirmation,tutor_course_sign_up
-from components.db_functions import get_course_dict,add_courses_to_student,get_user_courses,get_bot_competions,get_course_id_from_course_name
+from components.db_functions import get_course_dict,add_courses_to_student,get_user_courses,get_bot_competions,get_current_semester
 from components.courses import course_upload
 load_dotenv()
 st.markdown(
@@ -48,15 +48,18 @@ if "logged_in" not in st.session_state:
     st.session_state.status = ""
     st.session_state.selected_completion = None
     st.session_state.generated_code = ""
+    st.session_state.current_semester =get_current_semester()
     st.session_state.user_courses = []
     st.session_state.user_course_dict = {}
     st.session_state.course_names = []
+    st.session_state.selected_bot_name = "tutorbot"
 if "auth_mode" not in st.session_state:
     st.session_state.auth_mode = "Sign In"
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "selected_bot" not in st.session_state:
-    st.session_state.selected_bot = "tutorbot"  # Default bot selection
+    #selected bot is course_id for course specific bots 
+    st.session_state.selected_bot = "tutorbot"  
 if "show_fine_tune" not in st.session_state:
     st.session_state.show_fine_tune = False
 
@@ -82,6 +85,7 @@ if st.session_state.logged_in:
             st.session_state.course_names =  ['tutorbot','codebot'] +list(st.session_state.user_course_dict.keys())
 
         with st.sidebar:
+            #streamlit reruns main every time, hence this will be reinitialized every run to sync with session state selected_bot
             chatbot = Chatbot(
             api_key=st.secrets['OPENAI_API_KEY'],
             mongo_uri="mongodb://localhost:27017/",
@@ -106,8 +110,15 @@ if st.session_state.logged_in:
 
             with colA2:
                 with st.popover("Bot"):
-                    #This is to make sure when you create a new chat it stays in that bots page. The selected bot key also helps switch selected_bot
-                    bot_selection = st.radio("Choose your course:", st.session_state.course_names,key="selected_bot") 
+                    #it is important to keep selected bot as the course id (exception for tutorbot and codebot), hence course dict is crucial
+                    bot_selection = st.radio("Choose your course:", st.session_state.course_names) 
+
+                    if bot_selection!= st.session_state.selected_bot_name:
+                        print(f'bot selection : {bot_selection} selected bot : {st.session_state.selected_bot}')
+                        st.session_state.selected_bot_name = bot_selection
+                        course_dict = st.session_state.user_course_dict
+                        st.session_state.selected_bot= course_dict[bot_selection] if bot_selection in course_dict else bot_selection 
+                        st.rerun()
                 
   
             st.title(f"{st.session_state.selected_bot.capitalize()} Chat History")
@@ -148,8 +159,7 @@ if st.session_state.logged_in:
 
         #only avaialble if tutor, 1 chatbot completion available and has completion data
         if st.session_state.user_type == "tutor" and len(st.session_state.messages) > 1:
-              selected_bot_id = get_course_id_from_course_name(st.session_state.selected_bot)
-              model_completions = get_bot_competions(selected_bot_id)
+              model_completions = get_bot_competions(st.session_state.selected_bot)
               if model_completions:
                 fine_tune_button = st.button('Fine Tune')
                 if fine_tune_button:

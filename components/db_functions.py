@@ -19,6 +19,8 @@ archive_chats_collection = archived_chats_db['chats']
 model_db = client['model_data']
 model_examples = model_db['examples']
 model_completions = model_db['completions']
+system_prompts_collection = model_db['system_prompts']
+model_name_collection = model_db['model_names']
 
 
 
@@ -30,16 +32,36 @@ def add_examples_to_db(bot_type,input,output):
 
 def add_completions_to_db(bot_type,messages):
     model_completions.insert_one({"bot_type":bot_type,"messages":messages})
-def get_course_id_from_course_name(course_name):
-    course_dict = st.session_state.user_course_dict
-    course_id = course_dict[course_name] if course_name in course_dict else course_name
-    return course_id
+
 def get_bot_competions(bot_type):
     completions = list(model_completions.find({"bot_type":bot_type},{"_id":0,"messages":1}))
     return completions 
 def get_bot_examples(bot_type):
     examples = list(model_examples.find({"bot_type":bot_type},{"_id":0,"input":1,"output":1}))
     return examples
+def get_model_name():
+    #if nothing is selected default to tutor. If selected model is not in db, then also default to tutor
+    tutor_model = get_tutor_model()
+    if 'selected_bot' not in st.session_state:
+        return tutor_model
+    selected_bot = st.session_state.selected_bot
+    model_name = model_name_collection.find_one({"course_id":selected_bot})
+    if model_name:
+        return model_name["model_name"]
+    return tutor_model
+def get_tutor_model():
+     tutor_model = model_name_collection.find_one({"course_id":"tutorbot"})
+     return tutor_model["model_name"]
+
+def get_system_prompt():
+    #if system prompt does not exist, default to tutorbot
+    selected_bot = st.session_state.selected_bot
+    system_prompt = system_prompts_collection.find_one({"course_id":selected_bot})
+    if system_prompt:
+        return system_prompt.get('prompt')
+    tutor_prompt = system_prompts_collection.find_one({"course_id":"tutorbot"})
+    return tutor_prompt.get('prompt')
+
 def get_current_semester():
     date = datetime.now()
     # date =  date.strftime("%Y-%m-%d")
@@ -137,9 +159,10 @@ def get_enrolled_tutors():
     enrolled_tutors = list(users_collection.find({"user_type":"tutor","status":"approved"}))
     return enrolled_tutors
 def find_token():
-    token = list(tokens.find())
+    token = tokens.find_one()
     return token
 
 def remove_token():
     tokens.delete_many({})
+
 

@@ -16,13 +16,12 @@ import jsonlines
 import pandas as pd
 import csv
 import os
-from components.system_prompt import system_prompts
-from components.db_functions import get_bot_competions,get_bot_examples,get_course_id_from_course_name
+from components.db_functions import get_bot_competions,get_bot_examples,get_system_prompt,get_model_name
 class ChatChainSingleton:
     _instance = None
     chain = None
     prompt = None  # Store final_prompt here
-    model = "gpt-4o"
+    model = get_model_name()
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
@@ -38,9 +37,8 @@ class ChatChainSingleton:
         #initial case, in case courses do not have any examples.
         few_shot_prompt = None   
         #use course id to find example file from mongo
-        selected_bot_name = st.session_state.selected_bot
-        selected_bot_id = get_course_id_from_course_name(selected_bot_name)
-        examples = get_bot_examples(selected_bot_id)
+        selected_bot = st.session_state.selected_bot
+        examples = get_bot_examples(selected_bot)
         #if examples do not exist, use tutorbot examples
         if not examples:
             examples = get_bot_examples('tutorbot')
@@ -64,8 +62,9 @@ class ChatChainSingleton:
             ),
         )
 
-        #Assemble the final prompt template. If a system prompt exists use it, otherwise use tutorbot
-        system_prompt = system_prompts[st.session_state.selected_bot] if st.session_state.selected_bot in system_prompts else system_prompts['tutorbot']
+        #Assemble the final prompt template. 
+        # gets system prompt, if does not exist defaults to tutorbot
+        system_prompt = get_system_prompt()
         prompt_messages = [("system", ( system_prompt ))]
         if few_shot_prompt:
             prompt_messages.append(few_shot_prompt.format())

@@ -4,8 +4,7 @@ import logging
 import jsonlines 
 from pymongo import MongoClient
 import json 
-from components.system_prompt import system_prompts
-from components.db_functions import get_bot_competions,add_examples_to_db,get_course_id_from_course_name,add_completions_to_db
+from components.db_functions import get_bot_competions,add_examples_to_db,add_completions_to_db,get_system_prompt,get_model_name
 from groq import Groq
 from dotenv import load_dotenv
 import streamlit as st
@@ -26,16 +25,18 @@ openai_client = OpenAI(api_key=st.secrets['OPENAI_API_KEY'])
 if 'selected_bot' not in st.session_state:
     st.session_state.selected_bot = 'tutorbot'
 def upload_training_file():
+    selected_bot = st.session_state.selected_bot
     file = openai_client.files.create(
-        file=open(f"components/completions/{st.session_state.selected_bot}_completions.jsonl", "rb"),
+        file=open(f"components/completions/{selected_bot}_completions.jsonl", "rb"),
         purpose="fine-tune"
     )
     return file.id
 
 def create_fine_tuning_job(file_id):
+    model_name = get_model_name()
     fine_tune_job = openai_client.fine_tuning.jobs.create(
     training_file=file_id,
-    model="ft:gpt-4o-2024-08-06:sandia-national-labs:tutor-bot:BIbxO4zk"
+    model=model_name
 )
     return fine_tune_job
 
@@ -48,10 +49,10 @@ def set_current_completion(completion):
     st.session_state.selected_completion = completion
 
 
-def add_completions(selected_bot,prompt,answer):
+def add_completions(prompt,answer):
     #TODO move system prompt to db as well.
-    system_prompt = system_prompts[st.session_state.selected_bot] if st.session_state.selected_bot in system_prompts else system_prompts['tutorbot']
-    selected_bot = get_course_id_from_course_name(st.session_state.selected_bot)
+    system_prompt = get_system_prompt()
+    selected_bot= st.session_state.selected_bot
     path = f"components/completions/{selected_bot}_completions.jsonl"
     completions_data = []
     new_completion = {"messages":[{"role":"system","content":system_prompt},{"role":"user","content":prompt},{"role":"assistant","content":answer}]}
@@ -74,7 +75,7 @@ def add_completions(selected_bot,prompt,answer):
 def validate_final_answer(user_question,final_answer):
     print(user_question,final_answer)
     selected_bot = st.session_state.selected_bot
-    system_prompt = system_prompts[selected_bot]
+    system_prompt = get_system_prompt()
     validation_prompt = ""
     if selected_bot=='tutorbot' or selected_bot=='codebot':
         validation_prompt = f"""
@@ -153,10 +154,9 @@ def fine_tune():
                         if filled_in:
                             is_valid = validate_final_answer(selected_completion['Question'],final_answer)                                
                             if is_valid:
-                                selected_bot = st.session_state.selected_bot
-                                selected_bot_id = get_course_id_from_course_name(selected_bot)
-                                add_examples_to_db(selected_bot_id,selected_completion['Question'],example)
-                                add_completions(selected_bot_id,selected_completion['Question'],final_answer)
+                                
+                                add_examples_to_db(selected_completion['Question'],example)
+                                add_completions(selected_completion['Question'],final_answer)
                                 # perform_fine_tuning()
                                 st.success('Created Few shot prompt and completion for training!')
                                 time.sleep(2)
