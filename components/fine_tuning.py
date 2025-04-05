@@ -4,7 +4,7 @@ import logging
 import jsonlines 
 from pymongo import MongoClient
 import json 
-from components.db_functions import get_bot_competions,add_examples_to_db,add_completions_to_db,get_system_prompt,get_model_name
+from db_functions import get_bot_competions,add_examples_to_db,add_completions_to_db,get_system_prompt,get_model_name
 from groq import Groq
 from dotenv import load_dotenv
 import streamlit as st
@@ -24,53 +24,44 @@ openai_client = OpenAI(api_key=st.secrets['OPENAI_API_KEY'])
 
 if 'selected_bot' not in st.session_state:
     st.session_state.selected_bot = 'tutorbot'
-def upload_training_file():
-    selected_bot = st.session_state.selected_bot
+def upload_training_file(selected_bot):
+    # selected_bot = st.session_state.selected_bot
     file = openai_client.files.create(
         file=open(f"components/completions/{selected_bot}_completions.jsonl", "rb"),
         purpose="fine-tune"
     )
     return file.id
 
-def create_fine_tuning_job(file_id):
-    model_name = get_model_name()
+def create_fine_tuning_job(file_id,model):
     fine_tune_job = openai_client.fine_tuning.jobs.create(
     training_file=file_id,
-    model=model_name
+    model="gpt-4o-2024-08-06", #this is a base model for fine tuning
+    suffix=model
+
 )
     return fine_tune_job
 
-def perform_fine_tuning():
-    file_id = upload_training_file()
-    fine_tune_job = create_fine_tuning_job(file_id)
+def perform_fine_tuning(model):
+    set_up_completions(model)
+    file_id = upload_training_file(model)
+    fine_tune_job = create_fine_tuning_job(file_id,model)
     return fine_tune_job
 
 def set_current_completion(completion):
     st.session_state.selected_completion = completion
 
-
-def add_completions(prompt,answer):
-    #TODO move system prompt to db as well.
+def set_up_completions(selected_bot):
     system_prompt = get_system_prompt()
-    selected_bot= st.session_state.selected_bot
     path = f"components/completions/{selected_bot}_completions.jsonl"
-    completions_data = []
-    new_completion = {"messages":[{"role":"system","content":system_prompt},{"role":"user","content":prompt},{"role":"assistant","content":answer}]}
+    #if path does not exist, write data from db, w
     if not os.path.exists(path):
-        os.makedirs('components/completions')
+        if not os.path.exists('components/completions'):
+            os.makedirs('components/completions')
         completions_data = get_bot_competions(selected_bot)
-        completions_data.append(new_completion)
         with jsonlines.open(path,'w') as writer:
             writer.write_all(completions_data)
-    else:
-        with jsonlines.open(path,'a') as writer:
-            writer.write(new_completion)
-
-    add_completions_to_db(selected_bot,new_completion['messages'])
-    
 
     
-
 
 def validate_final_answer(user_question,final_answer):
     print(user_question,final_answer)
@@ -156,7 +147,7 @@ def fine_tune():
                             if is_valid:
                                 
                                 add_examples_to_db(selected_completion['Question'],example)
-                                add_completions(selected_completion['Question'],final_answer)
+                                add_completions_to_db(selected_completion['Question'],final_answer)
                                 # perform_fine_tuning()
                                 st.success('Created Few shot prompt and completion for training!')
                                 time.sleep(2)
@@ -167,3 +158,5 @@ def fine_tune():
                         else:
                             st.error('You must fill in the answers')
 
+# model ='CNT-4713'
+# print(perform_fine_tuning(model))
