@@ -13,9 +13,9 @@ import os
 import json
 import csv
 import jsonlines
-from components.fine_tuning import perform_fine_tuning,set_current_completion,add_examples,add_completions,fine_tune
+from components.fine_tuning import perform_fine_tuning,set_current_completion,fine_tune
 from components.sign_in import validate_email,authenticate_user,add_user,perform_sign_in_or_up,tutor_course_confirmation,tutor_course_sign_up
-from components.db_functions import get_course_names,add_courses_to_student,get_user_courses
+from components.db_functions import get_course_dict,add_courses_to_student,get_user_courses,get_bot_competions,get_course_id_from_course_name
 from components.courses import course_upload
 load_dotenv()
 st.markdown(
@@ -48,6 +48,9 @@ if "logged_in" not in st.session_state:
     st.session_state.status = ""
     st.session_state.selected_completion = None
     st.session_state.generated_code = ""
+    st.session_state.user_courses = []
+    st.session_state.user_course_dict = {}
+    st.session_state.course_names = []
 if "auth_mode" not in st.session_state:
     st.session_state.auth_mode = "Sign In"
 if "messages" not in st.session_state:
@@ -70,12 +73,13 @@ if st.session_state.logged_in:
         admin_panel()
     #For approved students/ tutors
     elif st.session_state.status=='approved':
-        # Display a success message temporarily
-        # temp solution
-        placeholder = st.empty()  # Create a placeholder
-        placeholder.success(f"Welcome {st.session_state.fname}!")  # Show the success message
-        time.sleep(2)  # Wait for 2 seconds
-        placeholder.empty()  # Clear the message after 2 seconds
+        #set session states
+        if not st.session_state.user_courses:
+            st.session_state.user_courses = get_user_courses(st.session_state.panther_id)
+        if not st.session_state.user_course_dict:
+            st.session_state.user_course_dict = get_course_dict(st.session_state.user_courses)
+        if not st.session_state.course_names:
+            st.session_state.course_names =  ['tutorbot','codebot'] +list(st.session_state.user_course_dict.keys())
 
         with st.sidebar:
             chatbot = Chatbot(
@@ -84,8 +88,7 @@ if st.session_state.logged_in:
             course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
         )   
             user_id = st.session_state.panther_id
-            user_courses = get_user_courses(user_id)
-            course_names = ['tutorbot','codebot'] + get_course_names(user_courses)
+
             chat_id = chatbot.get_current_chat_id(user_id)
             chat_history = chatbot.get_current_chat_history(user_id) if chat_id != 'deleted' else []
             st.session_state.selected_chat_id = chat_id
@@ -103,17 +106,10 @@ if st.session_state.logged_in:
 
             with colA2:
                 with st.popover("Bot"):
-                    bot_selection = st.radio("Choose your course:", course_names,key="selected_bot") #This is to make sure when you create a new chat it stays in that bots page
-                # Update session state if selection changes
+                    #This is to make sure when you create a new chat it stays in that bots page. The selected bot key also helps switch selected_bot
+                    bot_selection = st.radio("Choose your course:", st.session_state.course_names,key="selected_bot") 
                 
-                # Initialize chatbot with the selected bot
-                if bot_selection != st.session_state.selected_bot:
-                    st.session_state.selected_bot = bot_selection
-                    st.session_state.selected_chat_id = chatbot.get_current_chat_id(st.session_state.username)
-                
-                    
-            
-            
+  
             st.title(f"{st.session_state.selected_bot.capitalize()} Chat History")
             chatbot.generate_chats(user_id)
             
@@ -150,15 +146,15 @@ if st.session_state.logged_in:
             with st.spinner("Writing..."):
                 assistant_message = chatbot.generate_response(user_id,st.session_state.messages)
 
-        #only avaialble if tutor, 1 chatbot completion available and test completions ready
-        #TODO move examples and completions to DB then perform this additional check.
-        #TODO meet with andres to ensure fine tuning can be done on 1 model, then create additional fine tuned models
-        #TODO when fine tuning and pulling completions from db they would need to write to a jsonl file.
-        #TODO Only display fine tune if fine tuned model exists -> display message above saying model tempoarily not available.
+        #only avaialble if tutor, 1 chatbot completion available and has completion data
         if st.session_state.user_type == "tutor" and len(st.session_state.messages) > 1:
-            if st.button("Fine Tune"):
-                fine_tune()
-    
+              selected_bot_id = get_course_id_from_course_name(st.session_state.selected_bot)
+              model_completions = get_bot_competions(selected_bot_id)
+              if model_completions:
+                fine_tune_button = st.button('Fine Tune')
+                if fine_tune_button:
+                        fine_tune()
+        
     elif st.session_state.status =='pending_courses':
         #this is for old students/tutors who are logging into new semester.
         if st.session_state.user_type=='student':

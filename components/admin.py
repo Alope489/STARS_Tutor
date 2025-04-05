@@ -10,8 +10,8 @@ import time
 
 if 'generated_code' not in st.session_state:
     st.session_state.generated_code = ''
-if 'current_semester' not in st.session_state:
-    st.session_state.current_semester =get_current_semester()
+# if 'current_semester' not in st.session_state:
+#     st.session_state.current_semester =get_current_semester()
 
 @st.dialog("Remove a course")
 def removeClassModal():
@@ -166,7 +166,7 @@ def confirm_archive():
 
 def course_page():
     st.title("Welcome to the admin dashboard")
-    st.subheader(st.session_state.current_semester)
+    # st.subheader(st.session_state.current_semester)
     st.write("Admin dashboard to add or remove courses")
     courses = get_courses()
     if not courses:

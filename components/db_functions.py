@@ -15,11 +15,31 @@ archival_date = db['archival_date']
 #db chat_app for archived chats
 archived_chats_db = client['chat_app']
 archive_chats_collection = archived_chats_db['chats']
+#db model_data for examples and completions
+model_db = client['model_data']
+model_examples = model_db['examples']
+model_completions = model_db['completions']
 
 
 
 if 'courses_valid' not in st.session_state: 
     st.session_state.courses_valid = False
+
+def add_examples_to_db(bot_type,input,output):
+    model_examples.insert_one({"bot_type":bot_type,"input":input,"output":output})
+
+def add_completions_to_db(bot_type,messages):
+    model_completions.insert_one({"bot_type":bot_type,"messages":messages})
+def get_course_id_from_course_name(course_name):
+    course_dict = st.session_state.user_course_dict
+    course_id = course_dict[course_name] if course_name in course_dict else course_name
+    return course_id
+def get_bot_competions(bot_type):
+    completions = list(model_completions.find({"bot_type":bot_type},{"_id":0,"messages":1}))
+    return completions 
+def get_bot_examples(bot_type):
+    examples = list(model_examples.find({"bot_type":bot_type},{"_id":0,"input":1,"output":1}))
+    return examples
 def get_current_semester():
     date = datetime.now()
     # date =  date.strftime("%Y-%m-%d")
@@ -79,9 +99,9 @@ def get_user_courses(user_id):
         user_courses = user_doc.get("courses", [])
         return user_courses
 
-def get_course_names(course_ids):
-    courses = list(course_collection.find({"course_id":{"$in":course_ids}},{"course_name":1,"_id":0}))
-    course_names = [course['course_name']for course in courses]
+def get_course_dict(course_ids):
+    courses = list(course_collection.find({"course_id":{"$in":course_ids}}))
+    course_names = {course['course_name']:course['course_id'] for course in courses}
     return course_names
 def add_courses_to_student(panther_id,course_ids):
     print('adding courses to student')
@@ -122,5 +142,4 @@ def find_token():
 
 def remove_token():
     tokens.delete_many({})
-
 
