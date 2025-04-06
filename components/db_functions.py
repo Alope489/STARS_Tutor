@@ -27,6 +27,7 @@ model_name_collection = model_db['model_names']
 if 'courses_valid' not in st.session_state: 
     st.session_state.courses_valid = False
 
+
 def add_examples_to_db(bot_type,input,output):
     model_examples.insert_one({"bot_type":bot_type,"input":input,"output":output})
 
@@ -104,6 +105,14 @@ def get_all_chat_fields():
             if 'histories' in field.lower() and user['panther_id']:
                 chat_histories_by_user.append({"panther_id":user["panther_id"],field:user[field],"semester":semester})
     return list(chat_fields),chat_histories_by_user
+
+def get_user_chat_history(panther_id):
+    user = users_collection.find_one({"panther_id":panther_id})
+    chat_histories = []
+    for field in user:
+        if 'histories' in field.lower():
+            chat_histories.append({"panther_id":panther_id,field:user[field]})
+    return chat_histories
 
 def archive_user_chat_histories(user_chat_histories):
     if user_chat_histories:

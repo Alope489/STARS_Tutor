@@ -4,7 +4,7 @@ import logging
 import jsonlines 
 from pymongo import MongoClient
 import json 
-from db_functions import get_bot_competions,add_examples_to_db,add_completions_to_db,get_system_prompt,get_model_name
+from components.db_functions import get_bot_competions,add_examples_to_db,add_completions_to_db,get_system_prompt,get_model_name
 from groq import Groq
 from dotenv import load_dotenv
 import streamlit as st

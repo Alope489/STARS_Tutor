@@ -1,17 +1,16 @@
 import streamlit as st
 import pandas as pd
-from components.db_functions import course_collection,users_collection,tokens,get_pending_students,get_enrolled_students,get_courses,find_token,remove_token,get_pending_tutors,get_enrolled_tutors,set_archive_date, archive_chats,get_current_semester
+from components.db_functions import course_collection,users_collection,tokens,get_pending_students,get_enrolled_students,get_courses,find_token,remove_token,get_pending_tutors,get_enrolled_tutors,set_archive_date, archive_chats,get_current_semester,get_user_chat_history
 from uuid import uuid4
 from datetime import datetime,timedelta,timezone
 import time
+import json
 
 
 
 
 if 'generated_code' not in st.session_state:
     st.session_state.generated_code = ''
-# if 'current_semester' not in st.session_state:
-#     st.session_state.current_semester =get_current_semester()
 
 @st.dialog("Remove a course")
 def removeClassModal():
@@ -90,6 +89,18 @@ def addclassModal():
             st.success(f"Class {course_name} added successfully!")
             st.rerun()
 
+@st.dialog('Download User Chat')
+def download_chat(panther_id):
+    user_chat_history = get_user_chat_history(panther_id)
+    json_data = json.dumps(user_chat_history)
+    st.download_button(
+        label="Download JSON",
+        data=json_data,
+        file_name="data.json",
+        mime="application/json",
+        icon=":material/download:",
+    )
+
 def students_page():
     st.title('Students Page')
     st.subheader("Pending Students")
@@ -110,11 +121,14 @@ def students_page():
         selected_student = st.selectbox("Select a student to approve/reject", student_names)
 
         # Display buttons for approve/reject
-        col1,col2 = st.columns(2)
+        col1,col2,col3 = st.columns(3)
         with col1:
             approve_button = st.button("Approve",key='approve_pending_students',on_click=approveStudent,args=[selected_student])
         with col2:
             reject_button = st.button("Reject",key='reject_pending_students',on_click=rejectStudent,args=[selected_student])
+        with col3:
+            download_chat_button = st.button('Download Chat',key='download_chat_pending_students',on_click=download_chat,args=[df_pending[df_pending["email"]==selected_student]["panther_id"].values[0]])
+
     else:
         st.write('No pending students')
     
@@ -134,11 +148,13 @@ def students_page():
         selected_student = st.selectbox("Select a student to Reject/ Revise", student_names)
 
         # Display buttons for approve/reject
-        col1,col2 = st.columns(2)
+        col1,col2,col3= st.columns(3)
         with col1:
             reject_button = st.button("Reject",key='reject_enrolled_students',on_click=rejectStudent,args=[selected_student])
         with col2:
             revise_button = st.button("Revise",key='revise_enrolled_students',on_click=reviseStudent,args=[selected_student])
+        with col3:
+            download_chat_button = st.button('Download Chat',key='download_chat_enrolled_students',on_click=download_chat,args=[df_enrolled[df_enrolled["email"]==selected_student]["panther_id"].values[0]])
     else:
         st.write('No enrolled students')
 
@@ -199,7 +215,7 @@ def tutors_page():
         delta = expiration_date-datetime.now()
         delta_string = f'{delta.days} days {delta.seconds // 3600} hours'
         curr_token = st.text_input(f'Current Token, set to expire in {delta_string}',token['token'])
-    col1,col2 = st.columns(2)
+    col1,col2,col3 = st.columns(2)
     with col1:
         code = ''
         text_to_copy = st.text_input('Copy Code: ',st.session_state.generated_code)
@@ -241,12 +257,14 @@ def tutors_page():
         student_names = df_pending['email'].to_list()
         selected_tutor = st.selectbox("Select a tutor to approve/reject", student_names)
         # Display buttons for approve/reject
-        col1,col2 = st.columns(2)
+        col1,col2,col3 = st.columns(3)
         with col1:
             #same approve/reject functions can be used
             approve_button = st.button("Approve",key='approve_pending_tutor',on_click=approveStudent,args=[selected_tutor])
         with col2:
             reject_button = st.button("Reject",key='reject_pending_tutor',on_click=rejectStudent,args=[selected_tutor])
+        with col3:
+             download_chat_button = st.button('Download Chat',key='download_chat_enrolled_students',on_click=download_chat,args=[df_pending[df_pending["email"]==selected_tutor]["panther_id"].values[0]])
     else:
         st.write('No pending tutors')
 
@@ -266,11 +284,13 @@ def tutors_page():
         selected_tutor = st.selectbox("Select a student to Reject/ Revise", tutor_names)
 
         # Display buttons for approve/reject
-        col1,col2 = st.columns(2)
+        col1,col2,col3 = st.columns(3)
         with col1:
             reject_button = st.button("Reject",key='reject_enrolled_tutor',on_click=rejectStudent,args=[selected_tutor])
         with col2:
             revise_button = st.button("Revise",key='revise_enrolled_tutor',on_click=reviseStudent,args=[selected_tutor])
+        with col3:
+             download_chat_button = st.button('Download Chat',key='download_chat_enrolled_students',on_click=download_chat,args=[df_enrolled[df_enrolled["email"]==selected_tutor]["panther_id"].values[0]])
     else:
         st.write('No enrolled tutors')
 
