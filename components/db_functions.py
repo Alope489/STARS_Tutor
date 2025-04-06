@@ -28,11 +28,13 @@ if 'courses_valid' not in st.session_state:
     st.session_state.courses_valid = False
 
 
-def add_examples_to_db(bot_type,input,output):
-    model_examples.insert_one({"bot_type":bot_type,"input":input,"output":output})
+def add_examples_to_db(input,output):
+    model_examples.insert_one({"bot_type":st.session_state.selected_bot,"input":input,"output":output})
 
-def add_completions_to_db(bot_type,messages):
-    model_completions.insert_one({"bot_type":bot_type,"messages":messages})
+def add_completions_to_db(input,output):
+    system_prompt = get_system_prompt()
+    completion = {"messages":[{"role":"system","content":system_prompt},{"role":"user","content":input},{"role":"assistant","content":output}]}
+    model_completions.insert_one({"bot_type":st.session_state.selected_bot,"messages":completion})
 
 def get_bot_competions(bot_type):
     completions = list(model_completions.find({"bot_type":bot_type},{"_id":0,"messages":1}))

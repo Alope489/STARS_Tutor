@@ -316,10 +316,12 @@ def admin_panel():
     """,
     unsafe_allow_html=True
 )
+
     if "admin_page" not in st.session_state:
         st.session_state.admin_page = "courses"
        
     with st.sidebar:
+        
         st.title("Admin Panel")
         if st.sidebar.button("Menu"):
             st.session_state.admin_page ="courses"
@@ -330,6 +332,13 @@ def admin_panel():
         if st.sidebar.button("Tutors"):
             st.session_state.admin_page ="tutors"
             st.rerun()
+        if st.button("Logout"):
+                    st.session_state.logged_in = False
+                    st.session_state.username = ""
+                    st.session_state.messages = []
+                    st.session_state.user_type =""
+                    st.rerun()  
+            
     #The "pages"
     if st.session_state.admin_page =="courses":
        course_page()

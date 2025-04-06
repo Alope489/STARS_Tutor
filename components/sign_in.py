@@ -114,7 +114,7 @@ def tutor_course_sign_up():
     return chosen_course_ids,course_strings
 
 @st.dialog('Confirm your courses')
-def tutor_course_confirmation(panther_id,courses,courses_strings,enrollment_type,fname=None,lname=None,email=None,password=None,user_type=None):
+def tutor_course_confirmation(panther_id,courses,courses_strings,enrollment_type,user_type,fname=None,lname=None,email=None,password=None):
     st.write(courses_strings)
     approve = st.button('Confirm')
     if approve:
@@ -166,9 +166,9 @@ def sign_up_form():
             elif st.session_state.courses_valid:
                 #students have to go through course validation from courses.py and courses_valid will be True once validated. Tutors don't have validation just confirmation
                 if st.session_state.user_type=='tutor':
-                    tutor_course_confirmation(panther_id,courses,course_strings,'sign_up',fname,lname,email, password,st.session_state.user_type)
+                    tutor_course_confirmation(panther_id,courses,course_strings,'sign_up',"tutor",fname,lname,email, password)
                 else:
-                   process_user(fname,lname,email, password,st.session_state.user_type,panther_id,courses)
+                   process_user(fname,lname,email, password,"student",panther_id,courses)
     with col3:
         if st.button("Sign In"):
             st.session_state.auth_mode = "Sign In"

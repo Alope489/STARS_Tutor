@@ -29,8 +29,9 @@ def course_upload():
                 #    tutored_courses =  ['CAP-2752','ABC-123','DEF-456']
                    if tutored_courses:
                        st.session_state.courses_valid = True
+                       tutored_courses = [course.upper() for course in tutored_courses]
                        st.info(f'These are the courses we are currently tutoring:  \n\n {" | ".join(tutored_courses)}')
-                       return [course.upper() for course in tutored_courses]
+                       return tutored_courses
                    else:
                        st.error('We are not offering tutoring for these courses and do not have bots available')
                        
