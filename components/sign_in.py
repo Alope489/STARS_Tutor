@@ -56,7 +56,7 @@ def tutor_auth_form():
     authenticate = st.button('Authenticate')
     if authenticate:
         current_token = find_token()
-        if current_token and current_token[0]['token']==auth_code:
+        if current_token and current_token['token']==auth_code:
             st.success('You have been authenticated!')
             st.session_state.user_type='tutor'
             time.sleep(2)
