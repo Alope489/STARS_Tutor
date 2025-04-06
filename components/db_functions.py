@@ -64,6 +64,7 @@ def get_system_prompt():
     return tutor_prompt.get('prompt')
 
 def get_current_semester():
+    #this is only checked once per session.
     date = datetime.now()
     # date =  date.strftime("%Y-%m-%d")
     year = date.year
@@ -81,6 +82,20 @@ def get_current_semester():
     
     semester = f'{semester_type} {year}'
     return semester
+def check_system_down_time():
+    date = datetime.now()
+    weekday = date.strftime("%A")
+    hour = int(date.strftime("%H"))
+    #monday, wednesday,friday from 4am to 6am | 
+    warning_message = "The IT system is currently under maintenance. Emails will not be sent."
+    if (weekday=="Monday" or weekday=='Wednesday' or weekday == 'Friday' ) and 4<=hour<=6:
+        st.warning(warning_message)
+    #Tuesdays and Thursdays from 12am to 6am
+    elif (weekday=="Tuesday" or weekday=='Thursday') and 0<=hour<=6:
+        st.warning(warning_message)
+    #Saturdays from 8pm to 12 am and Sundays 12am to 12pm
+    elif (weekday =='Saturday' and 20<=hour<=23) or weekday=='Sunday' and 0<=hour<=12:
+        st.warning(warning_message)
 
 def set_archive_date(set_date):
     #set_date is a date object but we need to make it datetime. Just add a time field with the minimum time 0:0:0 at midnight

@@ -64,10 +64,8 @@ if "show_fine_tune" not in st.session_state:
     st.session_state.show_fine_tune = False
 
 # App Structure, don't display in admin panel
-
 if not st.session_state.user_type=='admin':
     st.title("Stars Tutoring Chatbot")
-
 
 
 if st.session_state.logged_in:
@@ -121,7 +119,7 @@ if st.session_state.logged_in:
                         st.rerun()
                 
   
-            st.title(f"{st.session_state.selected_bot.capitalize()} Chat History")
+            st.title(f"{st.session_state.selected_bot_name.capitalize()} Chat History")
             chatbot.generate_chats(user_id)
             
         

@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from components.db_functions import course_collection,users_collection,tokens,get_pending_students,get_enrolled_students,get_courses,find_token,remove_token,get_pending_tutors,get_enrolled_tutors,set_archive_date, archive_chats,get_current_semester,get_user_chat_history
+from components.db_functions import course_collection,users_collection,tokens,get_pending_students,get_enrolled_students,get_courses,find_token,remove_token,get_pending_tutors,get_enrolled_tutors,set_archive_date, archive_chats,get_current_semester,get_user_chat_history,check_system_down_time
 from uuid import uuid4
 from components.send_email import send_email
 from datetime import datetime,timedelta,timezone
@@ -30,6 +30,7 @@ def removeClassModal():
 @st.dialog("Approve Student")
 def approveStudent(student_email,student_name,student_status):
     st.subheader(f"Are you sure you want to approve {student_email}?")
+    check_system_down_time()
     approve, cancel = st.columns(2)
     with approve:
         send_email(student_email,student_name,student_status)
@@ -48,6 +49,7 @@ def approveStudent(student_email,student_name,student_status):
 @st.dialog("Reject Student")
 def rejectStudent(student_email,student_name,student_status):
     st.subheader(f"Are you sure you want to reject {student_email}?")
+    check_system_down_time()
     reject, cancel = st.columns(2)
     with reject:
         send_email(student_email,student_name,student_status)
@@ -66,6 +68,7 @@ def rejectStudent(student_email,student_name,student_status):
 @st.dialog('Revise Student')
 def reviseStudent(student_email,student_name,student_status):
     st.subheader('Are you sure you want student to reupload their course information?')
+    check_system_down_time()
     revise, cancel = st.columns(2)
     with revise:
         send_email(student_email,student_name,student_status)
@@ -289,7 +292,7 @@ def tutors_page():
 
         tutor_names = df_enrolled['email'].to_list()
         selected_tutor_email = st.selectbox("Select a student to Reject/ Revise", tutor_names)
-        selected_tutor_name = df_enrolled[df_enrolled[df_enrolled["email"]==selected_tutor_email]]["fname"].values[0]
+        selected_tutor_name = df_enrolled[df_enrolled["email"]==selected_tutor_email]["fname"].values[0]
         # Display buttons for approve/reject
         col1,col2,col3 = st.columns(3)
         with col1:

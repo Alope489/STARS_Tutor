@@ -158,5 +158,3 @@ def fine_tune():
                         else:
                             st.error('You must fill in the answers')
 
-# model ='CNT-4713'
-# print(perform_fine_tuning(model))
