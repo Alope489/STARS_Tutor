@@ -4,6 +4,12 @@ import logging
 from components.courses import course_upload
 from components.db_functions import find_token,get_courses,add_courses_to_student
 client = MongoClient("mongodb://localhost:27017/")
+
+db_username = st.secrets['DB_USER']
+db_pwd = st.secrets['DB_PWD']
+db_ip = st.secrets['DB_IP']
+
+client = MongoClient(f"mongodb://{db_username}:{db_pwd}@{db_ip}:27017/?authSource=admin")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 import time
 
