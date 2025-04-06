@@ -16,12 +16,12 @@ import jsonlines
 import pandas as pd
 import csv
 import os
-from components.system_prompt import system_prompts
+from components.db_functions import get_bot_competions,get_bot_examples,get_system_prompt,get_model_name
 class ChatChainSingleton:
     _instance = None
     chain = None
     prompt = None  # Store final_prompt here
-    model = "gpt-4o"
+    model = get_model_name()
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
@@ -33,35 +33,38 @@ class ChatChainSingleton:
     @classmethod
     def initialize_chain(cls, model: str = "gpt-4o") -> Any:
         logging.info("Initializing ChatChain.")
+        logging.info(f'Selected Bot :{st.session_state.selected_bot} ')
         #initial case, in case courses do not have any examples.
         few_shot_prompt = None   
-        file =  f'components/examples/{st.session_state.selected_bot}.jsonl'
-        if os.path.exists(file):
-            #examples may not exist
-            with jsonlines.open(f'components/examples/{st.session_state.selected_bot}.jsonl') as jsonl_f:
-                examples = [obj for obj in jsonl_f]
-                
-            try:
-                embeddings = OpenAIEmbeddings(api_key=st.secrets['OPENAI_API_KEY'] )
-                to_vectorize = ['.'.join(example.values()) for example in examples]
-                vectorstore = Chroma.from_texts(to_vectorize, embeddings, metadatas=examples, persist_directory= r"Documents")
-                logging.info("Chroma initialized.")
-            except Exception as e:
-                logging.error(f"Chroma initialization failed: {e}")
-                return None
+        #use course id to find example file from mongo
+        selected_bot = st.session_state.selected_bot
+        examples = get_bot_examples(selected_bot)
+        #if examples do not exist, use tutorbot examples
+        if not examples:
+            examples = get_bot_examples('tutorbot')
+            
+        try:
+            embeddings = OpenAIEmbeddings(api_key=st.secrets['OPENAI_API_KEY'] )
+            to_vectorize = ['.'.join(example.values()) for example in examples]
+            vectorstore = Chroma.from_texts(to_vectorize, embeddings, metadatas=examples, persist_directory= r"Documents")
+            logging.info("Chroma initialized.")
+        except Exception as e:
+            logging.error(f"Chroma initialization failed: {e}")
+            return None
 
-            example_selector = LoggingSemanticSimilarityExampleSelector(vectorstore=vectorstore, k=2)
+        example_selector = LoggingSemanticSimilarityExampleSelector(vectorstore=vectorstore, k=2)
 
-            few_shot_prompt = FewShotChatMessagePromptTemplate(
-                input_variables=["input"],
-                example_selector=example_selector,
-                example_prompt=ChatPromptTemplate.from_messages(
-                    [("human", "{input}"), ("ai", "{output}")]
-                ),
-            )
+        few_shot_prompt = FewShotChatMessagePromptTemplate(
+            input_variables=["input"],
+            example_selector=example_selector,
+            example_prompt=ChatPromptTemplate.from_messages(
+                [("human", "{input}"), ("ai", "{output}")]
+            ),
+        )
 
-        #Assemble the final prompt template
-        system_prompt = system_prompts[st.session_state.selected_bot]
+        #Assemble the final prompt template. 
+        # gets system prompt, if does not exist defaults to tutorbot
+        system_prompt = get_system_prompt()
         prompt_messages = [("system", ( system_prompt ))]
         if few_shot_prompt:
             prompt_messages.append(few_shot_prompt.format())

@@ -122,10 +122,7 @@ class Chatbot:
             current_chat = chat_histories[chat_id]['chat_history']
             return current_chat
         return None
-    def get_courses(self,user_id):
-        user_doc = user_doc = self.users_collection.find_one({'panther_id':user_id})
-        user_courses = user_doc.get("courses", [])
-        return user_courses
+
     def add_messages_to_chat_history(self,user_id,new_messages):
         chat_id = self.get_current_chat_id(user_id)
         chat_history_path = f'{self.bot_type}_chat_histories.{chat_id}.chat_history'
