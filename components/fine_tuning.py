@@ -4,11 +4,12 @@ import logging
 import jsonlines 
 from pymongo import MongoClient
 import json 
-from components.system_prompt import system_prompts
+from components.db_functions import get_bot_competions,add_examples_to_db,add_completions_to_db,get_system_prompt,get_model_name
 from groq import Groq
 from dotenv import load_dotenv
 import streamlit as st
 import os
+import time
 load_dotenv()
 
 client = MongoClient("mongodb://localhost:27017/")
@@ -18,63 +19,90 @@ db = client["user_data"]
 users_collection = db["users"]
 archive = client["chat_app"]
 chats_collection = archive["chats"]
-groq_client = Groq(api_key=os.getenv('GROQ_API_KEY'))
+groq_client = Groq(api_key=st.secrets['GROQ_API_KEY'])
 openai_client = OpenAI(api_key=st.secrets['OPENAI_API_KEY'])
 
-def upload_training_file():
+if 'selected_bot' not in st.session_state:
+    st.session_state.selected_bot = 'tutorbot'
+def upload_training_file(selected_bot):
+    # selected_bot = st.session_state.selected_bot
     file = openai_client.files.create(
-        file=open(f"components/completions/{st.session_state.selected_bot}_completions.jsonl", "rb"),
+        file=open(f"components/completions/{selected_bot}_completions.jsonl", "rb"),
         purpose="fine-tune"
     )
     return file.id
 
-def create_fine_tuning_job(file_id):
+def create_fine_tuning_job(file_id,model):
     fine_tune_job = openai_client.fine_tuning.jobs.create(
     training_file=file_id,
-    model="gpt-4o-mini-2024-07-18"
+    model="gpt-4o-2024-08-06", #this is a base model for fine tuning
+    suffix=model
+
 )
     return fine_tune_job
 
-def perform_fine_tuning():
-    file_id = upload_training_file()
-    fine_tune_job = create_fine_tuning_job(file_id)
+def perform_fine_tuning(model):
+    set_up_completions(model)
+    file_id = upload_training_file(model)
+    fine_tune_job = create_fine_tuning_job(file_id,model)
     return fine_tune_job
 
 def set_current_completion(completion):
     st.session_state.selected_completion = completion
 
-def add_examples(selected_bot,input,output):
-    #input is the user question. Output is the questions plus user answers
-    new_entry = {'input':input,'output':output}
-    with jsonlines.open(f'components/examples/{selected_bot}.jsonl','a') as writer:
-        writer.write(new_entry)
+def set_up_completions(selected_bot):
+    system_prompt = get_system_prompt()
+    path = f"components/completions/{selected_bot}_completions.jsonl"
+    #if path does not exist, write data from db, w
+    if not os.path.exists(path):
+        if not os.path.exists('components/completions'):
+            os.makedirs('components/completions')
+        completions_data = get_bot_competions(selected_bot)
+        with jsonlines.open(path,'w') as writer:
+            writer.write_all(completions_data)
+
     
 
-def add_completions(selected_bot,prompt,answer):
-    system_prompt = system_prompts[st.session_state.selected_bot]
-        
-    completion = {"messages":[{"role":"system","content":system_prompt},{"role":"user","content":prompt},{"role":"assistant","content":answer}]}
-    with jsonlines.open(f"components/completions/{selected_bot}_completions.jsonl",'a') as writer:
-        writer.write(completion)
-    perform_fine_tuning()
-
 def validate_final_answer(user_question,final_answer):
-    system_prompt = system_prompts['tutorbot']
-    validation_prompt = f"""You will fine tune responses for this AI model. You wil be given a user question and an assistant's answer as well the model's system prompt. 
-    Based on the answer you return True or False whether it:
-    1) Does it Answers Question Fully
-    2) Does it Stay within domain of subject
-    3) Does it explain the underlying concepts and help guide the student to the solution through their own efforts, or does it provide a direct solution that does not require effort on the students behalf?
+    print(user_question,final_answer)
+    selected_bot = st.session_state.selected_bot
+    system_prompt = get_system_prompt()
+    validation_prompt = ""
+    if selected_bot=='tutorbot' or selected_bot=='codebot':
+        validation_prompt = f"""
+            User question: {user_question}
+            Assistant Response : {final_answer}
 
-    User question: {user_question}
-    Assistant Response : {final_answer}
+            Ensure the question is being answered fully and staying within the realm of computer science
+            You must answer in this json format :
+            {{
+            "result" : true
+            }}
+            or 
+            {{
+            "result" : false
+            }}
+       
+        """
+    else:
+        validation_prompt = f"""You will fine tune responses for this AI model. You wil be given a user question and an assistant's answer as well the model's system prompt. 
+        Based on the answer you return True or False whether it:
+        1) Does it Answers Question well
+        2) Does it Stay within domain of subject
+        3) Only for answers related to code : Does it explain the underlying concepts and help guide the student to the solution through their own efforts, or does it provide a direct solution that does not require effort on the students behalf?
 
-    System Prompt for this model : {system_prompt}
+        User question: {user_question}
+        Assistant Response : {final_answer}
 
-     You must answer in this json format :
-     {{
-     "result" : true
-     }}
+        System Prompt for this model : {system_prompt}
+
+        You must answer in this json format :
+        {{
+        "result" : true
+        }}
+        {{
+        "result" : false
+        }}
        """
     completion = groq_client.chat.completions.create(
         model="DeepSeek-R1-Distill-Llama-70b",
@@ -117,13 +145,16 @@ def fine_tune():
                         if filled_in:
                             is_valid = validate_final_answer(selected_completion['Question'],final_answer)                                
                             if is_valid:
-                                add_examples(st.session_state.selected_bot,selected_completion['Question'],example)
-                                add_completions(st.session_state.selected_bot,selected_completion['Question'],final_answer)
+                                
+                                add_examples_to_db(selected_completion['Question'],example)
+                                add_completions_to_db(selected_completion['Question'],final_answer)
+                                # perform_fine_tuning()
                                 st.success('Created Few shot prompt and completion for training!')
+                                time.sleep(2)
                                 st.session_state.selected_completion = None
                                 st.rerun()
                             else:
-                                st.error('Your answer is either incorrect, not answering the question fully, or is not conducive to student learning, Try again!')
+                                st.error('Your answer is either incorrect, not answering the question well, out of scope, or is not conducive to student learning, Try again!')
                         else:
                             st.error('You must fill in the answers')
-                    
+
