@@ -47,9 +47,10 @@ def add_user(fname,lname,email, password,user_type,panther_id,courses):
     users_collection.insert_one({"fname":fname,"lname":lname, "email": email, "password": password,"panther_id":panther_id,"user_type":user_type,"status":"pending_approval","courses":courses})
     logging.info(f"New user added: {email}")
     return "success"
+
 def authenticate_user(email, password):
     """Authenticate user with email and password."""
-    user = users_collection.find_one({"email": email, "password": password})
+    user = users_collection.find_one({"email": email})
     if user:
         logging.info(f"User authenticated: {user['email']}")
     return user
