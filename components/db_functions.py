@@ -122,7 +122,7 @@ def get_all_chat_fields():
         for field in user:
             if 'chat' in field.lower():
                 chat_fields.add(field)
-            if 'histories' in field.lower() and user['panther_id']:
+            if 'histories' in field.lower() and 'panther_id' in user:
                 chat_histories_by_user.append({"panther_id":user["panther_id"],field:user[field],"semester":semester})
     return list(chat_fields),chat_histories_by_user
 

@@ -17,7 +17,7 @@ if 'generated_code' not in st.session_state:
 def removeClassModal():
     st.write('Remove a course')
     with st.form(key='class_form'):
-        course_id = st.text_input("Insert class id:")
+        course_id = st.text_input("Insert course_id:")
         submit = st.form_submit_button('Submit')
 
         if submit:
@@ -75,7 +75,7 @@ def reviseStudent(student_email,student_name,student_status):
         if st.button("Revise",key='confirm_revision'):
             users_collection.update_one(
                 {"email": student_email},
-                {"$set": {"status": "pending_courses"}}
+                {"$set": {"status": "pending_courses", "courses":[]}}
             )
             st.warning(f"Student {student_email} will now have to upload course information!") 
             time.sleep(2)
@@ -191,7 +191,7 @@ def students_page():
 
 
 def course_page():
-    st.title("Welcome to the admin dashboard")
+    st.title("Welcome to the Admin Dashboard")
     st.subheader(st.session_state.current_semester)
     st.write("Admin dashboard to add or remove courses")
     courses = get_courses()

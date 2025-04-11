@@ -86,7 +86,7 @@ if st.session_state.logged_in:
             #streamlit reruns main every time, hence this will be reinitialized every run to sync with session state selected_bot
             chatbot = Chatbot(
             api_key=st.secrets['OPENAI_API_KEY'],
-            mongo_uri="mongodb://localhost:27017/",
+            mongo_uri=st.secrets['MONGO_URI'],
             course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
         )   
             user_id = st.session_state.panther_id
@@ -157,8 +157,6 @@ if st.session_state.logged_in:
 
         #only avaialble if tutor, 1 chatbot completion available and has completion data
         if st.session_state.user_type == "tutor" and len(st.session_state.messages) > 1:
-              model_completions = get_bot_competions(st.session_state.selected_bot)
-              if model_completions:
                 fine_tune_button = st.button('Fine Tune')
                 if fine_tune_button:
                         fine_tune()
@@ -175,7 +173,7 @@ if st.session_state.logged_in:
                 st.rerun()
         else:
             course_ids, course_strings = tutor_course_sign_up()
-            submit = st.button('Submit',on_click=tutor_course_confirmation,args=[st.session_state.panther_id,course_ids,course_strings,'course_enrollment'])
+            submit = st.button('Submit',on_click=tutor_course_confirmation,args=[st.session_state.panther_id,course_ids,course_strings,'course_enrollment',"tutor"])
 
     elif st.session_state.status =='pending_approval':
         st.info('Your information is pending approval, please wait and you will be notified once approved.')
