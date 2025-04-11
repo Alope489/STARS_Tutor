@@ -17,7 +17,9 @@ from components.fine_tuning import perform_fine_tuning,set_current_completion,fi
 from components.sign_in import validate_email,authenticate_user,add_user,perform_sign_in_or_up,tutor_course_confirmation,tutor_course_sign_up
 from components.db_functions import get_course_dict,add_courses_to_student,get_user_courses,get_bot_competions,get_current_semester
 from components.courses import course_upload
+
 load_dotenv()
+
 st.markdown(
     """
     <style>
@@ -86,7 +88,7 @@ if st.session_state.logged_in:
             #streamlit reruns main every time, hence this will be reinitialized every run to sync with session state selected_bot
             chatbot = Chatbot(
             api_key=st.secrets['OPENAI_API_KEY'],
-            mongo_uri="mongodb://localhost:27017/",
+            mongo_uri=st.secrets['MONGO_URI'],
             course_name=st.session_state.selected_bot  # Pass course_name instead of bot_type
         )   
             user_id = st.session_state.panther_id
