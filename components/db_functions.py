@@ -3,8 +3,11 @@ from pymongo import MongoClient
 from datetime import datetime,date
 import time
 
-mongo_uri = "mongodb://localhost:27017/"
-client = MongoClient(mongo_uri)
+db_username = st.secrets['DB_USER']
+db_pwd = st.secrets['DB_PWD']
+db_ip = st.secrets['DB_IP']
+
+client = MongoClient(f"mongodb://{db_username}:{db_pwd}@{db_ip}:27017/?authSource=admin")
 #db user_data has collections for users, courses, tokens, and archival date. 
 db = client["user_data"]
 
