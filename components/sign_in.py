@@ -2,6 +2,8 @@ from pymongo import MongoClient
 import streamlit as st
 import logging
 from components.courses import course_upload
+from components.db_functions import find_token,get_courses,add_courses_to_student
+
 
 client = MongoClient(st.secrets['MONGO_URI'])
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
