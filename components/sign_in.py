@@ -2,6 +2,8 @@ from pymongo import MongoClient
 import streamlit as st
 import logging
 from components.courses import course_upload
+from components.db_functions import find_token,get_courses,add_courses_to_student
+
 
 db_username = st.secrets['DB_USER']
 db_pwd = st.secrets['DB_PWD']
