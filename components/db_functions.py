@@ -3,8 +3,7 @@ from pymongo import MongoClient
 from datetime import datetime,date
 import time
 
-mongo_uri = "mongodb://localhost:27017/"
-client = MongoClient(mongo_uri)
+client = MongoClient(st.secrets['MONGO_URI'])
 #db user_data has collections for users, courses, tokens, and archival date. 
 db = client["user_data"]
 
@@ -119,7 +118,7 @@ def get_all_chat_fields():
         for field in user:
             if 'chat' in field.lower():
                 chat_fields.add(field)
-            if 'histories' in field.lower() and user['panther_id']:
+            if 'histories' in field.lower() and 'panther_id' in user:
                 chat_histories_by_user.append({"panther_id":user["panther_id"],field:user[field],"semester":semester})
     return list(chat_fields),chat_histories_by_user
 
