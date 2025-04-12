@@ -11,7 +11,9 @@ configuration.api_key['api-key'] = st.secrets["BREVO_API_KEY"]
 
 # create an instance of the API class
 api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
+#300 emails every 2 months!
 def send_email(email,student_name,status):
+    pass
     subject_content = ""
     body_content = f"<html><body><h1>Hello {student_name} !</h1>"
     if status=="approve":
@@ -32,7 +34,8 @@ def send_email(email,student_name,status):
     body_content+="</body></html>"
     send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
         to=[{"email": email,"name":student_name.capitalize()}],
-        sender={"email": "stars@fiu.edu.com", "name": "STARS-TUTOR"},
+        #TODO get brevo to approve starstutor@fiu.edu email.
+        sender={"email": "starstutorfiu@gmail.com", "name": "Florida International University"},
         subject=subject_content,
         html_content=body_content
     )
@@ -42,3 +45,5 @@ def send_email(email,student_name,status):
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling SMTPApi->send_transac_email: %s\n" % e)
+
+# send_email('lalva224@fiu.edu','leandro','approve')
