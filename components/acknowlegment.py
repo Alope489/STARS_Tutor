@@ -58,6 +58,7 @@ def acknowlegments():
                 <p>Kristian Vazquez kristian12034@gmail.com</p>
                 <p>Miguel García miguelgarcia2002117@gmail.com</p>
                 <p>Jesus Valdes jesusvaldess29@gmail.com</p>
+                <p>Brian otero brianotero30@gmail.com</p>
             </div>
         </div>
         """
