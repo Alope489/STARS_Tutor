@@ -3,7 +3,8 @@ import streamlit as st
 import logging
 from components.courses import course_upload
 from components.db_functions import find_token,get_courses,add_courses_to_student
-
+import hashlib
+import os
 
 client = MongoClient(st.secrets['MONGO_URI'])
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
@@ -32,26 +33,39 @@ if 'user_type' not in st.session_state:
     st.session_state.user_type = 'student'
 
 
-
+def hash_password(password, salt):
+    """Hashes password with a given salt using SHA-256."""
+    return hashlib.sha256((salt + password).encode()).hexdigest()
 def validate_email(email):
     """Ensure the email ends with @fiu.edu."""
     return email.endswith("@fiu.edu")
 
-def add_user(fname,lname,email, password,user_type,panther_id,courses):
+def add_user(username, email, password):
     """Add a new user to the database."""
     if users_collection.find_one({"email": email}):
         return "Email already registered."
-    #new users have had their course info approved, therefore their status is immediately pending approval
-    users_collection.insert_one({"fname":fname,"lname":lname, "email": email, "password": password,"panther_id":panther_id,"user_type":user_type,"status":"pending_approval","courses":courses})
-    logging.info(f"New user added: {email}")
-    return "success"
-
 def authenticate_user(email, password):
     """Authenticate user with email and password."""
     user = users_collection.find_one({"email": email})
     if user:
-        logging.info(f"User authenticated: {user['email']}")
-    return user
+        input_password = hash_password(password, user["salt"])
+
+        if input_password == user["password"]:
+            logging.info(f"User authenticated: {user['username']}")
+            return user
+    return "User invalid, please input the correct credentials."
+
+
+# def add_user(fname,lname,email, password,user_type,panther_id,courses):
+#     """Add a new user to the database."""
+#     if users_collection.find_one({"email": email}):
+#         return "Email already registered."
+#     #new users have had their course info approved, therefore their status is immediately pending approval
+#     users_collection.insert_one({"fname":fname,"lname":lname, "email": email, "password": password,"panther_id":panther_id,"user_type":user_type,"status":"pending_approval","courses":courses})
+#     logging.info(f"New user added: {email}")
+#     return "success"
+
+
 
 @st.dialog('Tutor Authentication Form')
 def tutor_auth_form():
