@@ -138,7 +138,7 @@ def students_page():
     data = get_pending_students()
     if data:
         df_pending = pd.DataFrame(data)
-        columns_to_drop = ['_id','status','user_type','password']
+        columns_to_drop = ['_id','status','user_type','password','salt']
         #also drop any columns containg 'chat' which would include current chat ids and chat histories
         chat_columns = df_pending.filter(regex='.*chat.*', axis=1).columns.tolist()
         columns_to_drop = columns_to_drop + chat_columns
@@ -166,7 +166,7 @@ def students_page():
     enrolled_students = get_enrolled_students()
     if enrolled_students:
         df_enrolled = pd.DataFrame(enrolled_students)
-        columns_to_drop = ['_id','status','user_type','password']
+        columns_to_drop = ['_id','status','user_type','password','salt']
         #also drop any columns containg 'chat' which would include current chat ids and chat histories
         chat_columns = df_enrolled.filter(regex='.*chat.*', axis=1).columns.tolist()
         columns_to_drop = columns_to_drop + chat_columns
@@ -255,7 +255,7 @@ def tutors_page():
     data = get_pending_tutors()
     if data:
         df_pending = pd.DataFrame(data)
-        columns_to_drop = ['_id','status','user_type','password']
+        columns_to_drop = ['_id','status','user_type','password','salt']
         chat_columns = df_pending.filter(regex='.*chat.*', axis=1).columns.tolist()
         columns_to_drop = columns_to_drop + chat_columns
         df_pending = df_pending.drop(columns=columns_to_drop)
@@ -282,7 +282,7 @@ def tutors_page():
     enrolled_tutors = get_enrolled_tutors()
     if enrolled_tutors:
         df_enrolled = pd.DataFrame(enrolled_tutors)
-        columns_to_drop = ['_id','status','user_type','password']
+        columns_to_drop = ['_id','status','user_type','password','salt']
         #also drop any columns containg 'chat' which would include current chat ids and chat histories
         chat_columns = df_enrolled.filter(regex='.*chat.*', axis=1).columns.tolist()
         columns_to_drop = columns_to_drop + chat_columns

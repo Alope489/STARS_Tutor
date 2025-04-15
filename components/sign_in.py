@@ -32,29 +32,49 @@ if 'generated_code' not in st.session_state:
 if 'user_type' not in st.session_state:
     st.session_state.user_type = 'student'
 
+#Not used in code, to add admins manually. Need to get rid of components. inside sign_in.py and course.py to run in below
+def add_admin(username,password):
+    salt = os.urandom(16).hex()
+    hashed_password = hash_password(password,salt)
+    try:
+        print(hashed_password)
+        print(salt)
+        user =users_collection.insert_one({"username":username,"password":hashed_password})
+        user_found = users_collection.find_one({"username":username})
+        print("user found", user_found)
+        print(user)
+        return 'Admin Added'
+    except Exception as e:
+        return e
 
+def hash_password(password, salt):
+    """Hashes password with a given salt using SHA-256."""
+    return hashlib.sha256((salt + password).encode()).hexdigest()
 def validate_email(email):
-    """Ensure the email ends with @fiu.edu."""
-    return email.endswith("@fiu.edu")
+     """Ensure the email ends with @fiu.edu."""
+     return email.endswith("@fiu.edu")
 
 def add_user(fname,lname,email, password,user_type,panther_id,courses):
-    """Add a new user to the database."""
-    if users_collection.find_one({"email": email}):
-        return "Email already registered."
-    #new users have had their course info approved, therefore their status is immediately pending approval
-    users_collection.insert_one({"fname":fname,"lname":lname, "email": email, "password": password,"panther_id":panther_id,"user_type":user_type,"status":"pending_approval","courses":courses})
-    logging.info(f"New user added: {email}")
-    return "success"
+     """Add a new user to the database."""
+     if users_collection.find_one({"email": email}):
+         return "Email already registered."
+     salt = os.urandom(16).hex()
+     hashed_password = hash_password(password,salt)
+     users_collection.insert_one({"fname":fname,"lname":lname,"email":email,"user_type":user_type,"panther_id":panther_id,"courses":courses ,"password": hashed_password,"salt":salt,"status":"pending_approval"})
+
+     logging.info(f"New user added: {email}, {email}")
+     return "success"
 
 def authenticate_user(email, password):
     """Authenticate user with email and password."""
-    user = users_collection.find_one({"email": email,"password":password})
-    if user:
-        logging.info(f"User authenticated: {user['email']}")
-    return user
-
-
-
+    user_for_salt = users_collection.find_one({"email": email})
+    if user_for_salt:
+        input_password = hash_password(password, user_for_salt["salt"])
+        user = users_collection.find_one({"email":email,"password":input_password})
+        if user:
+            logging.info(f"User authenticated: {user['email']}")
+            return user
+        return None
 
 
 @st.dialog('Tutor Authentication Form')
@@ -132,7 +152,7 @@ def tutor_course_confirmation(panther_id,courses,courses_strings,enrollment_type
         
         
 
-def process_user(fname,lname,email,password,user_type,panther_id,courses,):
+def process_user(fname,lname,email,password,user_type,panther_id,courses):
     result = add_user(fname,lname,email, password,user_type,panther_id,courses)
     if result == "success":
         st.success("Account created successfully! Please log in.")
@@ -187,4 +207,6 @@ def perform_sign_in_or_up():
        
      elif st.session_state.auth_mode == "Sign Up":
         sign_up_form()
-       
+
+# if __name__ =="__main__":
+#     print(add_admin('testadmin@fiu.edu',"testadmin123"))
