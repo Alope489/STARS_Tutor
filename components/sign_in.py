@@ -48,21 +48,12 @@ def add_user(fname,lname,email, password,user_type,panther_id,courses):
 
 def authenticate_user(email, password):
     """Authenticate user with email and password."""
-    user = users_collection.find_one({"email": email})
+    user = users_collection.find_one({"email": email,"password":password})
     if user:
         logging.info(f"User authenticated: {user['email']}")
     return user
 
 
-
-# def add_user(fname,lname,email, password,user_type,panther_id,courses):
-#     """Add a new user to the database."""
-#     if users_collection.find_one({"email": email}):
-#         return "Email already registered."
-#     #new users have had their course info approved, therefore their status is immediately pending approval
-#     users_collection.insert_one({"fname":fname,"lname":lname, "email": email, "password": password,"panther_id":panther_id,"user_type":user_type,"status":"pending_approval","courses":courses})
-#     logging.info(f"New user added: {email}")
-#     return "success"
 
 
 
