@@ -4,10 +4,12 @@ from pymongo import MongoClient
 import re 
 import json
 from components.db_functions import parse_courses
+import os 
 
 def course_upload():
     st.write('Provide PDF of your current courses. This will be found under MyFIU, Manage Classes, View Class Schedule. Then, Click where it says Print Schedule and Download the File.')
-    st.image('components\images\FIU Schedule.png')
+    image_path = os.path.join("components", "images", "FIU Schedule.png")
+    st.image(image_path)
     #first check, is to ensure its a pdf
     try:
         file = st.file_uploader("Choose a file", type=["pdf"])
