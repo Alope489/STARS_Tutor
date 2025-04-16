@@ -28,6 +28,9 @@
       ```
       OPENAI_API_KEY=your OpenAI API key
       GROQ_API_KEY=your Groq API key
+      BREVO_API_KEY = your Brevo API key
+      MONGO_URI = your mongouri
+      
       ```
 
 # MongoDB Setup
