@@ -73,8 +73,9 @@ def validate_final_answer(user_question,final_answer):
             User question: {user_question}
             Assistant Response : {final_answer}
 
-            Ensure the question is being answered fully and staying within the realm of computer science
+            Ensure the user question is being answered fully and staying within the realm of computer science
             You must answer in this json format :
+            Return True if the above is True otherwise return False
             {{
             "result" : true
             }}
@@ -97,6 +98,7 @@ def validate_final_answer(user_question,final_answer):
         System Prompt for this model : {system_prompt}
 
         You must answer in this json format :
+        Return True if the above is True otherwise return False
         {{
         "result" : true
         }}
