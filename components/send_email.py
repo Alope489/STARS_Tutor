@@ -13,7 +13,6 @@ configuration.api_key['api-key'] = st.secrets["BREVO_API_KEY"]
 api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
 #300 emails every 2 months!
 def send_email(email,student_name,status):
-    pass
     subject_content = ""
     body_content = f"<html><body><h1>Hello {student_name} !</h1>"
     if status=="approve":
@@ -46,4 +45,3 @@ def send_email(email,student_name,status):
     except ApiException as e:
         print("Exception when calling SMTPApi->send_transac_email: %s\n" % e)
 
-# send_email('lalva224@fiu.edu','leandro','approve')
