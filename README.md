@@ -40,9 +40,9 @@
 
 2. **Create New Connection in Compass:**
     - Under the new connection, create 3 databases `user_data`, `chat_app`, and `model_data`.
-    - Inside `user_data`, create the following collections:  users, tokens, courses
+    - Inside `user_data`, create the following collections:  `users`, `tokens`, `courses`
     - Inside `chat_app` create `chats` collection
-    - Inside `model_data` create completions, examples, model_names, system_prompts
+    - Inside `model_data` create `completions`, `examples`, `model_names`, `system_prompts`
 
 # Feature Branch Workflow
 
