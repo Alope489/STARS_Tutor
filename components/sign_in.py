@@ -62,7 +62,7 @@ def add_user(fname,lname,email, password,user_type,panther_id,courses):
 
      logging.info(f"New user added: {email}, {email}")
      return "success"
-
+#using hashing
 def authenticate_user(email, password):
     """Authenticate user with email and password."""
     user_for_salt = users_collection.find_one({"email": email})
