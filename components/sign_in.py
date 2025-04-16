@@ -41,8 +41,6 @@ def add_admin(username,password):
         print(salt)
         user =users_collection.insert_one({"username":username,"password":hashed_password})
         user_found = users_collection.find_one({"username":username})
-        print("user found", user_found)
-        print(user)
         return 'Admin Added'
     except Exception as e:
         return e
