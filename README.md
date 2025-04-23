@@ -1,5 +1,8 @@
 # Set Up Environment and Download Dependencies
 
+**Clone the Repo**
+git clone https://github.com/Stars-AI-tutor/STARS_Tutor.git
+
 1. **Create Virtual Environment:**
     - Run the following command:
       ```bash
