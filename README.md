@@ -32,8 +32,7 @@ git clone https://github.com/Stars-AI-tutor/STARS_Tutor.git
       OPENAI_API_KEY=your OpenAI API key
       GROQ_API_KEY=your Groq API key
       BREVO_API_KEY = your Brevo API key
-      MONGO_URI = your mongouri
-      
+      MONGO_URI = your atlas mongo uri when deployed. mongodb://localhost:27017 when deployed     
       ```
 
 # MongoDB Setup
