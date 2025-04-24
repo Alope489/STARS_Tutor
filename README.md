@@ -48,16 +48,16 @@ git clone https://github.com/Stars-AI-tutor/STARS_Tutor.git
     - Add Admin Test User :
     -  Once deployed you would add Professor Malik and Gilal
       
-```json
-{
-  "_id": "67f96897463b61af9e061796",
-  "fname": "Test",
-  "lname": "Admin",
-  "email": "tadmin@fiu.edu",
-  "user_type": "admin",
-  "password": "af87163f8788dca36b0a26ad2912e3df0c38079da34616b61821a839a7baa0ff",
-  "salt": "fd8297b5a4ff28bdf3cf0d5085842306"
-}
+    ```json
+    {
+      "_id": "67f96897463b61af9e061796",
+      "fname": "Test",
+      "lname": "Admin",
+      "email": "tadmin@fiu.edu",
+      "user_type": "admin",
+      "password": "af87163f8788dca36b0a26ad2912e3df0c38079da34616b61821a839a7baa0ff",
+      "salt": "fd8297b5a4ff28bdf3cf0d5085842306"
+    }
 
 
 
