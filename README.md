@@ -58,8 +58,9 @@ git clone https://github.com/Stars-AI-tutor/STARS_Tutor.git
       "salt": "fd8297b5a4ff28bdf3cf0d5085842306"
     }
 
--  Once deployed on AWS you would add Professor Malik and Gilal. For the password hashing you need a sha 256 salt generator similar to above.
+
 -  Add data from google drive : [Google Drive](https://drive.google.com/drive/folders/1F9cmnJqchQqxjWRgUkMVjGGyF91z94xw)
+-  Once deployed on AWS you would add Professor Malik and Gilal. For the password hashing you need a sha 256 salt generator similar to above.
 
 
 
