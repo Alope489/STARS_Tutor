@@ -46,7 +46,6 @@ git clone https://github.com/Stars-AI-tutor/STARS_Tutor.git
     - Inside `chat_app` create `chats` collection
     - Inside `model_data` create `completions`, `examples`, `model_names`, `system_prompts`
     - Add Admin Test User :
-    -  Once deployed you would add Professor Malik and Gilal
       
     ```json
     {
@@ -58,6 +57,9 @@ git clone https://github.com/Stars-AI-tutor/STARS_Tutor.git
       "password": "af87163f8788dca36b0a26ad2912e3df0c38079da34616b61821a839a7baa0ff",
       "salt": "fd8297b5a4ff28bdf3cf0d5085842306"
     }
+
+    - Once deployed you would add Professor Malik and Gilal
+    - Add data from google drive : [Google Drive](https://drive.google.com/drive/folders/1F9cmnJqchQqxjWRgUkMVjGGyF91z94xw)
 
 
 
