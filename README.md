@@ -58,8 +58,8 @@ git clone https://github.com/Stars-AI-tutor/STARS_Tutor.git
       "salt": "fd8297b5a4ff28bdf3cf0d5085842306"
     }
 
-    - Once deployed you would add Professor Malik and Gilal
-    - Add data from google drive : [Google Drive](https://drive.google.com/drive/folders/1F9cmnJqchQqxjWRgUkMVjGGyF91z94xw)
+-  Once deployed you would add Professor Malik and Gilal
+-  Add data from google drive : [Google Drive](https://drive.google.com/drive/folders/1F9cmnJqchQqxjWRgUkMVjGGyF91z94xw)
 
 
 
